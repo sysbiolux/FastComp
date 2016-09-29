@@ -16,5 +16,5 @@ The results can be analysed using the DisplayAllResults function from the Evalua
 
 
 ### Relevant Literature
-[1] Mintz-Oron, S.; Aharoni, A.; Ruppin, E. & Shlomi, T. Network-based prediction of metabolic enzymes' subcellular localization Bioinformatics, 2009, 25, i247-i252
+[1] Mintz-Oron, S.; Aharoni, A.; Ruppin, E. & Shlomi, T. Network-based prediction of metabolic enzymes' subcellular localization Bioinformatics, 2009, 25, i247-i252  
 [2] Vlassis, N.; Pacheco, M. P. & Sauter, T. Fast reconstruction of compact context-specific metabolic network models. PLoS Comput Biol, 2014, 10, e1003424
