@@ -80,7 +80,12 @@ divisor = 10^(fix(decimals)-1);
 maxtime = (fix(maxtime / divisor) + 1)*divisor; %Round to the next highest
 for t=1:numel(Times)
     Times{t}.YLim = [0 maxtime];
-    Times{t}.YAxis.Exponent = floor(log10(maxtime)-0.1);
+    try       
+        Times{t}.YAxis.Exponent = floor(log10(maxtime)-0.1);
+    catch
+        %Happens if Matlab Version is prior to 2015a, in this case just
+        %ignore it.
+    end
 end
 end
     

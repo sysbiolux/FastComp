@@ -6,6 +6,9 @@ This repository contains the FastComp algorithm for subcellular localisation pre
 * LP approximation of a MILP to determine reaction activity, the MILP is formulated in [1]
 * Adapted FASTCC algorithm to allow simultaneous positive activation of all reactions.
 
+##Requesites
+FastComp assumes that you have CPLEX installed and that the matlab bindings are on your matlab path.
+
 ##Repository structure
 src contains the source files with CalculateCompartments the script that has to be run to get the prediction.
 In additon the src folder contains the models used in the paper (iND750_Model.mat, Recon2ForFastComp.mat, ReconForFastComp.mat), 

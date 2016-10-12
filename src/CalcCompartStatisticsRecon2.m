@@ -5,7 +5,7 @@ function CalcCompartStatisticsRecon2(Percentage,Replicates,Count, filename)
     addpath([pwd filesep])
     addpath([pwd filesep 'FastCore' filesep])
     addpath([pwd filesep 'Logic' filesep])
-    addpath([getenv('HOME') filesep 'CPLEX' filesep 'cplex' filesep 'matlab'])
+
     mkdir(['/tmp/FC_Recon' num2str(Percentage) '_' num2str(Count)])
     %cd(['/tmp/FC_Recon' num2str(Percentage) '_' num2str(Count)])
     load('Recon2ForFastComp.mat')

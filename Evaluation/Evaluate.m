@@ -24,7 +24,7 @@ end
 % recall = overallAcc(origin,pred);
 EMR = ExactMatchRatio(origin,pred);
 L_Score = LabellingFScore(origin,pred);
-R_score = retrievalScore(origin,pred);
+R_Score = retrievalScore(origin,pred);
 %precision = (TruePositives) / (TruePositives + FalseNegatives + FalsePositives);
 %(numel(find((origin == 1) & (pred==1)))) / numel(find(pred));
 %precision = TruePositives / PredictedLabels;

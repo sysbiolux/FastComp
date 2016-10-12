@@ -5,7 +5,6 @@ function CalcCompartStatisticsiND(Percentage,Replicates,Count, filename)
     addpath([pwd filesep])
     addpath([pwd filesep 'FastCore' filesep])
     addpath([pwd filesep 'Logic' filesep])
-    addpath([getenv('HOME') filesep 'CPLEX' filesep 'cplex' filesep 'matlab'])
     
     mkdir(['/tmp/FC_' num2str(Percentage) '_' num2str(Count)])
     cd(['/tmp/FC_' num2str(Percentage) '_' num2str(Count)])
