@@ -1,4 +1,4 @@
-function [PrepTimes,ResultFCPure,ResultFC,ResultMO,ResultFCPlus,Predictions]= CalculateSampleForKnownPercentage(model, epsilon, cytosolID, CompartmentIDs, CompartmentNames, SingleCompModel, OrigLocalisation, NonExternals, replicates, percentage, rngseed, Exchangers )
+function [ResultFCPure,ResultFC,ResultMO,Predictions]= CalculateSampleForKnownPercentage(model, epsilon, cytosolID, CompartmentIDs, CompartmentNames, SingleCompModel, OrigLocalisation, NonExternals, replicates, percentage, rngseed,useMO, Exchangers )
 %The results are double arrays with the following entries:
 %Correct Predictions | False Predictions | No Prediction | RunTime
 %OrigLocalisation is a list of localisations for all reactions, that are
@@ -8,7 +8,6 @@ function [PrepTimes,ResultFCPure,ResultFC,ResultMO,ResultFCPlus,Predictions]= Ca
 
 %initialize the random number generator with the given seed (so that we can
 %produce comparable results in different runs
-rngseed
 rng(rngseed)
 %if no exchangers were defined, we create an empty exchanger set.
 if nargin < 12
@@ -47,20 +46,18 @@ for i=1:replicates
     ToPredict = OrigLocalisation(unknowns);
     %save('Target','ToPredict');
     %Start the prediction for this set
-    [FCComps,FCtime,FullComps,Fulltime,FullPlus,FullPlusTime,MOComps,MOTime] =  determineCompartments_compare( model, epsilon, {},...
+    [FCComps,FCtime,FullComps,Fulltime,MOComps,MOTime] =  determineCompartments_compare( model, epsilon, {},...
                                                        cytosolID, CompartmentIDs, CompartmentNames,...
                                                        ReactionCompartmentalisationData, GeneComp,...
                                                        SingleCompModel, 1,...
-                                                       '[e]',Exchangers);
-    Predictions.(['Replicate' num2str(i)]) = {FCComps,FullComps,FullPlus,MOComps,OrigLocalisation(unknowns),model.rxns(NonExternals(unknowns))};
+                                                       '[e]',Exchangers,useMO);
+    Predictions.(['Replicate' num2str(i)]) = {FCComps,FullComps,MOComps,OrigLocalisation(unknowns),model.rxns(NonExternals(unknowns))};
     PrepTimes(i,1) = 0;    
     %Determine some statistics.
     [corr, wrong, missing, unpred] =  checkprediction(FCComps,OrigLocalisation(unknowns));
     ResultFCPure(i,:) = [corr, wrong, missing, unpred, FCtime];
     [corr, wrong, missing, unpred] =  checkprediction(FullComps,OrigLocalisation(unknowns));    
     ResultFC(i,:) = [corr, wrong, missing, unpred, Fulltime];
-    [corr, wrong, missing, unpred] =  checkprediction(FullPlus,OrigLocalisation(unknowns));        
-    ResultFCPlus(i,:) = [corr, wrong, missing, unpred, FullPlusTime];
     [corr, wrong, missing, unpred] =  checkprediction(MOComps,OrigLocalisation(unknowns));     
     ResultMO(i,:) = [corr, wrong, missing, unpred, MOTime];    
     fprintf('New RNG Seed is %i\n',(rngseed + i));    

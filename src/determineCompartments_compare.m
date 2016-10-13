@@ -1,8 +1,8 @@
-function [FCComps,FCtime,FullComps,Fulltime,FullPlus,FullPlusTime,MOComps,MOTime,PrepTime] = determineCompartments_Compare( model, epsilon, Demandreactions,...
+function [FCComps,FCtime,FullComps,Fulltime,MOComps,MOTime] = determineCompartments_Compare( model, epsilon, Demandreactions,...
                                                        cytosolID, CompartmentIDs, CompartmentNames,...
                                                        ReactionCompartmentalisationData, GeneCompData,...
                                                        SingleCompModel, ExclusiveGenePos,...
-                                                       ReactionToAllCompartments,ExternalID,Exchangers)
+                                                       ExternalID,Exchangers,useMO)
 %determineCompartments This function Runs multiple network based
 %compartment prediction algorithms on a input set.
 % Parameters:
@@ -61,18 +61,15 @@ ctime = clock;
 disp('Doing FastComp')
 [FCComps,FullComps,FCtime] = FastCompartPrediction( CompartModelFC , transportersFC, nonLocReacSetsumodFC, coreFC, [cytosolID,CompartmentIDs], epsilon, fastCompModel, mappingFC,ReactionCompartmentalisationData, ComparisonModelFC ,'umod');
 Fulltime = etime(clock,ctime) + FCumodtime + fcpreptime + fcmodelgentime; 
-FullPlus = FullComps;
-ctime = clock;
-FullPlusTime = etime(clock,ctime) + FCmodtime + MOPrepTime;
 
 ctime = clock;
 %FullPlusTime =  newelapsed - elapsed;
 disp('Doing Mintz-Oron Algorithm')
-MOComps = OronMILP(CompartModel,transporters,nonLocReacSets,core,[cytosolID,CompartmentIDs],epsilon, model );
-%Comment the line above and uncomment the line below to skip the MO step.
-%MOComps = FullComps;
-%FullPlusTime = Fulltime;
-%MOTime = Fulltime;
+if useMO
+    MOComps = OronMILP(CompartModel,transporters,nonLocReacSets,core,[cytosolID,CompartmentIDs],epsilon, model );
+else
+    MOComps = FullComps;
+end
 MOTime = etime(clock,ctime) + MOPrepTime;
 end
 

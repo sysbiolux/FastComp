@@ -1,16 +1,35 @@
-function CalcCompartStatisticsRecon2(Percentage,Replicates,Count, filename)
-%try
-    upath = userpath;
-    addpath([pwd filesep 'CobraFunctions']);
-    addpath([pwd filesep])
-    addpath([pwd filesep 'FastCore' filesep])
-    addpath([pwd filesep 'Logic' filesep])
+function CalcCompartStatisticsRecon2(Percentage,Replicates,filename,useMO,randomize)
+%Calculates compartments for the given number of Replicates and the given
+%percentage of known reaction localisations for the human reconstruction Recon 2.
+%It should always yield the same unknown reactions if randomiz is not set
+%to 0. The function further assumes, that CPLEX is on the MATLAB path.
+rng('shuffle')
+if nargin < 4
+    useMO = 0;
+end
 
-    mkdir(['/tmp/FC_Recon' num2str(Percentage) '_' num2str(Count)])
-    %cd(['/tmp/FC_Recon' num2str(Percentage) '_' num2str(Count)])
-    load('Recon2ForFastComp.mat')
-    
-    [ResultFCPure,ResultFC,Predictions]= CalculateSampleForKnownPercentage2(decompHumanWOExchangers,1,'c',[Recon_CompIDs],{},0,comps,1:numel(decompHumanWOExchangers.rxns),Replicates,Percentage,Count,Exchangers);
-    home = getenv('HOME');
-    save([home filesep 'FastCompResults' filesep 'ResultsRecon2_new' num2str(Percentage) '-'     num2str(1+((Count-1)*Replicates))] ,'ResultFCPure','ResultFC','Predictions');
+if nargin < 5
+    seed = randi(intmax);
+    disp('Using Random unknown sets')
+else
+    if(randomize)
+        seed = randi(intmax);
+        disp('Using Random unknown sets')
+    else
+        seed = 0;
+    end
+end
+cpath = pwd;
+addpath([pwd filesep 'CobraFunctions']);
+addpath([pwd filesep])
+addpath([pwd filesep 'FastCore' filesep])
+addpath([pwd filesep 'Logic' filesep])
+mkdir(['/tmp/FC_Recon' num2str(Percentage) '_' num2str(seed)])
+cd(['/tmp/FC_Recon' num2str(Percentage) '_' num2str(seed)])
+load('Recon2ForFastComp.mat')
+
+[CompartResults,ResultFC,ResultMO,Predictions]= CalculateSampleForKnownPercentage(decompHumanWOExchangers,1,'c',[Recon_CompIDs],{},0,comps,1:numel(decompHumanWOExchangers.rxns),Replicates,Percentage,seed,useMO,Exchangers);
+
+cd(cpath);
+save(filename ,'CompartResults','ResultMO','ResultFC','Predictions');
 
