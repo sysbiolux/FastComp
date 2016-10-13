@@ -11,7 +11,9 @@ function f = DisplayAllResults(Percentages,SampleCount,FileName,Comps,model,Algo
 if nargin < 7
     excludeC = 0;
 end
-usedAlgos = ismember({'Compartment','FastComp','NotPresent','Mintz-Oron','RandomResult'},Algos);
+algonames = {'Compartment','FastComp','Mintz-Oron','RandomResult'};
+
+usedAlgos = ismember(algonames,Algos);
 f = figure;
 
 Colors = [ 0 1 0; 
@@ -26,10 +28,10 @@ maxtime = -Inf;
 for perc=1:numel(Percentages)
     
     Percentage = Percentages(perc);
-    [FCResult, FCPureResult,FCFullResult,MOResult,RandomResult] = DisplayResults(Percentage,SampleCount,FileName,Comps,model,excludeC);    
+    [FCResult, FCPureResult,MOResult,RandomResult] = DisplayResults(Percentage,SampleCount,FileName,Comps,model,excludeC);    
     
-    bars = [FCResult(1), FCPureResult(1), FCFullResult(1), MOResult(1), RandomResult(1)];
-    errors = [FCResult(2), FCPureResult(2), FCFullResult(2), MOResult(2), RandomResult(2)];
+    bars = [FCResult(1), FCPureResult(1), MOResult(1), RandomResult(1)];
+    errors = [FCResult(2), FCPureResult(2), MOResult(2), RandomResult(2)];
     
     bars = plotBars(f,numel(Percentages),4,(perc-1)*4 + 1, errors(usedAlgos),bars(usedAlgos));    
     for i=1:algocount
@@ -40,8 +42,8 @@ for perc=1:numel(Percentages)
     if perc== numel(Percentages)
        xlabel('EMR')
     end
-    bars = [FCResult(3), FCPureResult(3), FCFullResult(3), MOResult(3), RandomResult(3)];
-    errors = [FCResult(4), FCPureResult(4), FCFullResult(4), MOResult(4), RandomResult(4)];
+    bars = [FCResult(3), FCPureResult(3), MOResult(3), RandomResult(3)];
+    errors = [FCResult(4), FCPureResult(4), MOResult(4), RandomResult(4)];
    bars = plotBars(f,numel(Percentages),4,(perc-1)*4 + 2, errors(usedAlgos),bars(usedAlgos));   
     for i=1:algocount
         bars(i).FaceColor = Colors(i,:);
@@ -50,8 +52,8 @@ for perc=1:numel(Percentages)
     if perc== numel(Percentages)
        xlabel('L-Score')
     end
-    bars = [FCResult(5), FCPureResult(5), FCFullResult(5), MOResult(5), RandomResult(5)];
-    errors = [FCResult(6), FCPureResult(6), FCFullResult(6), MOResult(6), RandomResult(6)];
+    bars = [FCResult(5), FCPureResult(5),  MOResult(5), RandomResult(5)];
+    errors = [FCResult(6), FCPureResult(6),  MOResult(6), RandomResult(6)];
     bars = plotBars(f,numel(Percentages),4,(perc-1)*4 + 3, errors(usedAlgos),bars(usedAlgos));
     for i=1:algocount
         bars(i).FaceColor = Colors(i,:);
@@ -60,10 +62,10 @@ for perc=1:numel(Percentages)
     if perc== numel(Percentages)
        xlabel('R-Score')
     end
-    ctimes = [FCResult(7), FCPureResult(7), FCFullResult(7), MOResult(7), RandomResult(7)] + [FCResult(8), FCPureResult(8), FCFullResult(8), MOResult(8), RandomResult(8)];
+    ctimes = [FCResult(7), FCPureResult(7), MOResult(7), RandomResult(7)] + [FCResult(8), FCPureResult(8), MOResult(8), RandomResult(8)];
     maxtime = max(union(maxtime, ctimes(usedAlgos)));
-    bars = [FCResult(7), FCPureResult(7), FCFullResult(7), MOResult(7), RandomResult(7)];
-    errors = [FCResult(8), FCPureResult(8), FCFullResult(8), MOResult(8), RandomResult(8)];
+    bars = [FCResult(7), FCPureResult(7), MOResult(7), RandomResult(7)];
+    errors = [FCResult(8), FCPureResult(8), MOResult(8), RandomResult(8)];
     bars = plotBars(f,numel(Percentages),4,(perc-1)*4 + 4, errors(usedAlgos),bars(usedAlgos)); 
     Times{perc} = gca;
     for i=1:algocount
@@ -87,6 +89,7 @@ for t=1:numel(Times)
         %ignore it.
     end
 end
+legend(algonames(usedAlgos));
 end
     
 function pbars = plotBars(cfig,subplotx,subploty,subplotid,errors,bars)

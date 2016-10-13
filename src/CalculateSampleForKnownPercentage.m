@@ -10,7 +10,7 @@ function [ResultFCPure,ResultFC,ResultMO,Predictions]= CalculateSampleForKnownPe
 %produce comparable results in different runs
 rng(rngseed)
 %if no exchangers were defined, we create an empty exchanger set.
-if nargin < 12
+if nargin < 13
     Exchangers = {};
 end
 %initialize the return struct
