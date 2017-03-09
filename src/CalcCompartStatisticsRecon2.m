@@ -24,8 +24,8 @@ addpath([pwd filesep 'CobraFunctions']);
 addpath([pwd filesep])
 addpath([pwd filesep 'FastCore' filesep])
 addpath([pwd filesep 'Logic' filesep])
-mkdir(['/tmp/FC_Recon' num2str(Percentage) '_' num2str(seed)])
-cd(['/tmp/FC_Recon' num2str(Percentage) '_' num2str(seed)])
+mkdir([tempdir filesep 'FC_Recon' num2str(Percentage) '_' num2str(seed)])
+cd([tempdir filesep 'FC_Recon' num2str(Percentage) '_' num2str(seed)])
 load('Recon2ForFastComp.mat')
 
 [CompartResults,ResultFC,ResultMO,Predictions]= CalculateSampleForKnownPercentage(decompHumanWOExchangers,1,'c',[Recon_CompIDs],{},0,comps,1:numel(decompHumanWOExchangers.rxns),Replicates,Percentage,seed,useMO,Exchangers);

@@ -26,7 +26,7 @@ function [FCComps,FCtime,FullComps,Fulltime,MOComps,MOTime] = determineCompartme
 starttime = clock;
 fcpreptime = 0;
 disp('Generating Extended Model');
-fastCompmodel = model;
+fastCompModel = model;
 fastCompExchangers = Exchangers;
 if ~isempty(Exchangers)
     [fastCompModel,fastCompExchangers,ComparisonModelFC] = CreateComparisonModelAndUpdateExchangersOrder(model,Exchangers,cytosolID);
@@ -45,7 +45,7 @@ MOStart = clock;
 MOPrepTime = etime(clock,MOStart);
 ctime = clock;
 [CompartModelFC,coreFC,transportersFC,nonLocReacSetsumodFC,nonLocReacNamesumodFC] = ...
-    GenerateExtendedModel(fastCompmodel, cytosolID, CompartmentIDs, CompartmentNames,...
+    GenerateExtendedModel(fastCompModel, cytosolID, CompartmentIDs, CompartmentNames,...
     ReactionCompartmentalisationData, GeneCompData, SingleCompModel, ExclusiveGenePos,...
     ExternalID, fastCompExchangers);
 fcmodelgentime = etime(clock,ctime);
