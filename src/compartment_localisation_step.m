@@ -128,7 +128,6 @@ localisedReactions=unique([localisedReactions; new_localized]);
 %to_localized=find(~(ismember(A_keep2_uni_name, comp_model.rxns )));
 %new_localized=find(ismember(comp_model.rxns,A_keep2_uni(to_localized) ));
 
-
 %localisedReactions=unique([localisedReactions; new_localized]);
 end
 

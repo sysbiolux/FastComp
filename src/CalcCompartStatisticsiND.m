@@ -23,8 +23,8 @@ addpath([pwd filesep 'CobraFunctions']);
 addpath([pwd filesep])
 addpath([pwd filesep 'FastCore' filesep])
 addpath([pwd filesep 'Logic' filesep])
-mkdir(['/tmp/FC_' num2str(Percentage) '_' num2str(seed)])
-cd(['/tmp/FC_' num2str(Percentage) '_' num2str(seed)])
+mkdir([tempdir filesep  'FC_' num2str(Percentage) '_' num2str(seed)])
+cd([tempdir filesep 'FC_' num2str(Percentage) '_' num2str(seed)])
 load('iND750_Model.mat')
 
 [CompartResults,ResultFC,ResultMO,Predictions]= CalculateSampleForKnownPercentage(iND750_decomp_DirAdjust,1,'c',iND750_DirecAdjust_CompIDs,iND750_DirecAdjust_CompNames,0,iND750_DirecAdjust_OrigLocs,iND750_DirecAdjust_NonExt,Replicates,Percentage,seed,useMO)
