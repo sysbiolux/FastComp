@@ -11,7 +11,7 @@ function [A,model,incI] = fastcc_ChangeModel( model, epsilon )
 % Modifications by Thomas Pfau
 
 N = (1:numel(model.rxns));
-I = find(model.rev==0);
+I = find(model.lb < 0);
 
 A = [];
 Vs = {};
@@ -79,9 +79,13 @@ end
 count = 0;
 while numel(incI) > 0 
     %fprintf('Adjusting %i reactions in model\n',numel(incI));
-    model = flipRxns(model,incI(randperm(numel(incI),randi(numel(incI)))));
-    [A,model,incI] = fastcc_test(model,epsilon);        
+    if(mod(count,50) == 0)
+        fprintf('There are %i reactions remaining\n',numel(incI));
+    end
+    model = flipRxns(model,incI(randperm(numel(incI),randi(numel(incI)))));    
+    [A,model,incI] = fastcc_test(model,epsilon);            
     count = count +1;
+    
 %    if count > 20
 %        model2 = removeRxns(model,model.rxns(incI));
 %        A = fastcc_test(model2,epsilon);

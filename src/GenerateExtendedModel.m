@@ -67,17 +67,14 @@ ExchangeRs = unique([imps; exps]);
 %Add all Exchangers to the ExchangeReactions array
 %Always add the "upper bound" exchanger first (as this is the one that
 %carries positive flux.
-for i=1:numel(ExchangeRs)
+LocalExRs = cell(numel(ExchangeRs),5);
+for i=1:numel(ExchangeRs)    
     met = find(model.S(:,ExchangeRs(i)));
     commet = regexprep(model.mets(met),'\[[a-z]\]$','');
     comp = regexprep(model.mets(met),'.*\[([a-z])\]$','$1');
-    if model.ub(ExchangeRs(i)) > 0
-        ExchangeReactions(end+1,1:3) = {commet{1},comp{1},full(-sign(model.S(met,ExchangeRs(i))))};
-    end
-    if model.lb(ExchangeRs(i)) < 0
-        ExchangeReactions(end+1,1:3) = {commet{1},comp{1},full(sign(model.S(met,ExchangeRs(i))))};
-    end
+    LocalExRs(i,:) = {commet{1},comp{1},full(sign(model.S(met,ExchangeRs(i)))),model.lb(ExchangeRs(i)),model.ub(ExchangeRs(i))};    
 end
+ExchangeReactions = [ExchangeReactions;LocalExRs];
 
 %Now, if we have a non single compartment model we will need to define external metabolites
 %if those are not defined by an ID, we assume all metabolites involved with

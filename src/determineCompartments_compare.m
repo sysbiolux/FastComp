@@ -31,9 +31,8 @@ fastCompExchangers = Exchangers;
 if ~isempty(Exchangers)
     [fastCompModel,fastCompExchangers,ComparisonModelFC] = CreateComparisonModelAndUpdateExchangersOrder(model,Exchangers,cytosolID);
 else
-    [~,fastCompModel,~] = fastcc_ChangeModel(model,epsilon);
-    ComparisonModelFC = fastCompModel;
-    
+    fastCompModel = model;
+    ComparisonModelFC = fastCompModel;    
 end
 fcpreptime = fcpreptime + etime(clock,starttime);
 

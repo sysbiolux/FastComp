@@ -29,7 +29,6 @@ CoreReactions = [];
 Transporters = [];
 CompTransporters = {};
 CompartmentIDs = [cytosolID CompartmentIDs];
-% find(ismember(model.rxns,'6HTSTSTERONEte'))
 NonLocReacs = unique(setdiff(find(cellfun(@length,Complist) == 0),ExtRxns));
 nonLocReacNames = model.rxns(NonLocReacs);
 %Make a copy of the original model
@@ -58,6 +57,24 @@ cytosolmetoffset = numel(compmodel.mets);
 %fprintf('After Removing Exchange reactions, the model contains %i reactions and there are %i external reactions\n',numel(compmodel.rxns), numel(ExtRxns));
 % save('Inmodel2')
 emptyreac = 0;
+metFields = getModelFieldsForType(model,'mets');
+relMetFields = setdiff(metFields,{'S','mets','b','csense'}); % remove FBA fields.
+metpars = {};
+for metField = 1: numel(relMetFields)
+    metpars{end+1} = relMetFields{metField};
+    metpars{end+1} = compmodel.(relMetFields{metField})(IntMets);
+end
+
+rxnFields = getModelFieldsForType(model,'rxns');
+relRxnFields = setdiff(metFields,{'S','rxns','C', 'rxnGeneMat'}); % remove FBA fields.
+rxnspars = {};
+for rxnField = 1: numel(relRxnFields)
+    rxnspars{end+1} = relRxnFields{rxnField};
+    rxnspars{end+1} = compmodel.(relMetFields{metField})(NonLocReacs);
+end
+
+NonLocReacMatrix = OrigModel.S(IntMets,NonLocReacs);
+
 for c = 1:numel(CompartmentIDs)       
 %     fprintf('There are currently %i reactions and %i gprs\n',length(compmodel.rxns),length(compmodel.grRules));
 %     disp('The Current size of S is')
@@ -69,133 +86,31 @@ for c = 1:numel(CompartmentIDs)
 %     fprintf('We add From Row %i to %i and col %i to %i\n',size(compmodel.S,1)+size(model.S,1)-numel(ExtMets),size(compmodel.S,1)+1,size(compmodel.S,2)+numel(NonLocReacs),size(compmodel.S,2)+1)
     %duplicate the non localised part of the S matrix
     %To do this, we will first add all metabolites to the new compartment    
-    [compmetcount,compreaccount] = size(compmodel.S);
+    [compmetcount,compreaccount] = size(compmodel.S);    
     %Extend the S Matrix by IntMets Metabolites and NonLocReacs reactions
-    compmodel.S(compmetcount+1:compmetcount+numel(IntMets),:) = 0;
-    compmodel.S(:,compreaccount+1:compreaccount+numel(NonLocReacs)) = 0;
+    compMetNames = strcat(NonCompMetList(IntMets),['[' CompartmentIDs{c} ']']);
+    compmodel = addMetaboliteBatch(compmodel,compMetNames,...
+                metpars{:});
     %And set the new bits to the old S-Matrix for those entries
+    
     compmodel.S(compmetcount+1:compmetcount+numel(IntMets),compreaccount+1:compreaccount+numel(NonLocReacs)) = ...
-        OrigModel.S(IntMets,NonLocReacs);
-    %also duplicate the corresponding metabolite rows.
-    %disp('Extending Metabolites')
-    compmodel.mets = [compmodel.mets ; strcat(NonCompMetList(IntMets),['[' CompartmentIDs{c} ']'])];
-    compmodel.metNames = [compmodel.metNames ; model.metNames(IntMets)];
-    compmodel.metFormulas = [compmodel.metFormulas ; model.metFormulas(IntMets)];
-    compmodel.b = [compmodel.b ; model.b(IntMets)];
-    if (isfield(model,'metChEBIID'))
-        compmodel.metChEBIID = [compmodel.metChEBIID ; model.metChEBIID(IntMets)];
-    end
-    if isfield(model,'metKEGGID')
-        compmodel.metKEGGID = [compmodel.metKEGGID ; model.metKEGGID(IntMets)];
-    end
-    if isfield(model,'metPubChemID')
-        compmodel.metPubChemID = [compmodel.metPubChemID ; model.metPubChemID(IntMets)];  
-    end
-    if isfield(model,'metInChIString')
-        compmodel.metInChIString = [compmodel.metInChIString ; model.metInChIString(IntMets)];
-    end
-    if isfield(model,'metCharge')
-        compmodel.metCharge =   [compmodel.metCharge ; model.metCharge(IntMets)];
-    end
-    
-    
+        OrigModel.S(IntMets,NonLocReacs);       
     
     %if we have Non ocalised Reactions
     if numel(NonLocReacs) > 0
-        % and the gene relationships (which are duplicates for each of this, as
-        % localisation is unknown)
-        %disp('Extending GPRs')
-        compmodel.rules = [compmodel.rules ; model.rules(NonLocReacs)];
-        compmodel.grRules = [compmodel.grRules; model.grRules(NonLocReacs)];
-        compmodel.rxnGeneMat(size(compmodel.rxnGeneMat,1)+1:size(compmodel.rxnGeneMat,1)+numel(NonLocReacs),:) = model.rxnGeneMat(NonLocReacs,:);
-        
-        
-        %and the reaction rows
-        %disp('Extending Reactions')
-        crxns = numel(compmodel.rxns);
-        %add the positions of the nonLocalised Reactions
-        nonLocReacSets(:,end+1) = [1:numel(NonLocReacs)] + crxns;
-        %And update the remainig fields
-        compmodel.rxns = [compmodel.rxns ; strcat(regexprep(model.rxns(NonLocReacs),'\([a-z]+\)',''),['(' CompartmentIDs{c} ')'])];
-        compmodel.lb = [compmodel.lb ; model.lb(NonLocReacs)];
-        compmodel.ub = [compmodel.ub ; model.ub(NonLocReacs)];
-        compmodel.rev = [compmodel.rev ; model.rev(NonLocReacs)];
-        compmodel.rxnNames = [compmodel.rxnNames ; model.rxnNames(NonLocReacs)];
-        compmodel.c = [compmodel.c ; model.c(NonLocReacs)];
-        if isfield(model,'subSystems')
-            compmodel.subSystems = [compmodel.subSystems ; model.subSystems(NonLocReacs)];
-        end
-        if isfield(model,'confidenceScores')
-            compmodel.confidenceScores = [compmodel.confidenceScores ; model.confidenceScores(NonLocReacs)];
-        end
-        if isfield(model,'rxnNotes')
-            compmodel.rxnNotes = [compmodel.rxnNotes ; model.rxnNotes(NonLocReacs)];
-        end
-        if isfield(model,'rxnECNumbers')
-            compmodel.rxnECNumbers = [compmodel.rxnECNumbers ; model.rxnECNumbers(NonLocReacs)];
-        end
-        if isfield(model,'rxnReferences')
-            compmodel.rxnReferences = [compmodel.rxnReferences ; model.rxnReferences(NonLocReacs)];
-        end
-        if (isfield(model, 'rxnConfidenceScores'))
-            compmodel.rxnConfidenceScores = [compmodel.rxnConfidenceScores ; model.rxnConfidenceScores(NonLocReacs)];;
-        end
-        if (isfield(model, 'rxnKeggID'))
-            compmodel.rxnKeggID = [compmodel.rxnKeggID ; model.rxnKeggID(NonLocReacs)];
-        end
-        if (isfield(model, 'rxnsboTerm'))
-            compmodel.rxnsboTerm = [compmodel.rxnsboTerm ; model.rxnsboTerm(NonLocReacs)];
-        end
-    else
-        if (strcmp(CompartmentIDs{c},cytosolID)) && (size(compmodel.S,2) == 1)
-            %Now we got a problem! we have created an empty reaction and we
-            %need to fix this.
-            emptyreac = 1;
-        end
-            
-                
+        compRxnNames = strcat(regexprep(model.rxns(NonLocReacs),'\([a-z]+\)',''),['(' CompartmentIDs{c} ')'])]
+        compmodel = addReactionBatch(compmodel,compRxnNames,compMetNames,NonLocReacMatrix, rxnspars{:});
     end
     %Now add the localised Reactions of this compartment
     ExclusiveRxns = find(cellfun(@(x) not(isempty(find(ismember(x,CompartmentIDs{c})))),Complist));
     for r=1:numel(ExclusiveRxns)
         %add this as a core reaction.         
         CoreReactions(end+1,1) = numel(compmodel.rxns)+1;
-        compmodel.rxns{end+1,1} = strcat(regexprep(model.rxns{ExclusiveRxns(r)},'\([a-z]+\)',''),['(' CompartmentIDs{c} ')']);
-        compmodel.lb(end+1,1) = model.lb(ExclusiveRxns(r));
-        compmodel.ub(end+1,1) = model.ub(ExclusiveRxns(r));
-        compmodel.rev(end+1,1) = model.rev(ExclusiveRxns(r));
-        compmodel.rxnNames{end+1,1} = [model.rxnNames{ExclusiveRxns(r)} '(' CompartmentIDs{c} ')'];
-        compmodel.c(end+1,1) = model.c(ExclusiveRxns(r));        
-        if emptyreac
-            compmodel.S([1:numel(IntMets)] + compmetcount,end) = model.S(IntMets,ExclusiveRxns(r));        
-            emptyreac = 0;
-        else
-            compmodel.S([1:numel(IntMets)] + compmetcount,end+1) = model.S(IntMets,ExclusiveRxns(r));        
-        end
-        if isfield(model,'subSystems')
-            compmodel.subSystems{end+1,1} = model.subSystems{ExclusiveRxns(r)};
-        end
-        if isfield(model,'confidenceScores')
-            compmodel.confidenceScores{end+1,1} = model.confidenceScores{ExclusiveRxns(r)};
-        end        
-        if isfield(model,'rxnNotes')
-            compmodel.rxnNotes{end+1,1} = model.rxnNotes{ExclusiveRxns(r)};
-        end
-        if isfield(model,'rxnECNumbers')
-            compmodel.rxnECNumbers{end+1,1} = model.rxnECNumbers{ExclusiveRxns(r)};
-        end               
-        if isfield(model,'rxnReferences')
-            compmodel.rxnReferences{end+1,1} = model.rxnReferences{ExclusiveRxns(r)};
-        end
-        if (isfield(model, 'rxnConfidenceScores'))
-            compmodel.rxnConfidenceScores{end+1,1} = model.rxnConfidenceScores{ExclusiveRxns(r)};
-        end
-        if (isfield(model, 'rxnKeggID'))
-            compmodel.rxnKeggID{end+1,1} = model.rxnKeggID{ExclusiveRxns(r)};
-        end
-        if (isfield(model, 'rxnsboTerm'))
-            compmodel.rxnsboTerm{end+1,1} = model.rxnsboTerm{ExclusiveRxns(r)};
-        end
+        compmodel = addReaction(compmodel,strcat(regexprep(model.rxns{ExclusiveRxns(r)},'\([a-z]+\)',''),['(' CompartmentIDs{c} ')']),...
+                                'lowerBound',model.lb(ExclusiveRxns(r)), 'upperBounds', model.ub(ExclusiveRxns(r)),...
+                                'stoichCoeffList',model.S(IntMets,ExclusiveRxns(r)),...
+                                'metaboliteList',compmodel.mets([1:numel(IntMets)] + compmetcount),...
+                                'rxnName', [model.rxnNames{ExclusiveRxns(r)} '(' CompartmentIDs{c} ')']);                                    
         %now this gets interesting.... Since here we can assign gene
         %localisation.
         %First get the genes involved with this reaction        
@@ -237,15 +152,12 @@ for c = 1:numel(CompartmentIDs)
             end
 
             %now, parse the GPR and extract the correct GPRs
-            %disp('Creating Formula')
             FP = FormulaParser();
-            Formula = FP.parseFormula(model.grRules{ExclusiveRxns(r)});
-            %disp('Creating DNNF Form')
+            Formula = FP.parseFormula(model.rules{ExclusiveRxns(r)});
             Formula = Formula.convertToDNF();
             FormString = Formula.toString(0);
             Formula.reduce();
-            %reduce the Formula.
-            %disp('Reducing Formula')
+            %reduce the Formula.            
             while not(strcmp(FormString,Formula.toString(0)))
                 FormString = Formula.toString(0);
                 Formula.reduce();
@@ -272,8 +184,6 @@ for c = 1:numel(CompartmentIDs)
             childstodel = [];
             %and remove from these clauses all which show differently
             %localised genes
-            NewFormula.toString(1);
-            %disp('Removing non compartment genes')
             for gene = 1:numel(differentloc)
                 for cid = 1:numel(NewFormula.children)
                     child = NewFormula.children(cid);
@@ -283,7 +193,6 @@ for c = 1:numel(CompartmentIDs)
                 end
             end
             NewFormula.children(childstodel) = [];
-            NewFormula.toString(1);
             %Create the new GPR String
             GPRString = NewFormula.toString(0);
             NewFormula.reduce();
@@ -293,25 +202,13 @@ for c = 1:numel(CompartmentIDs)
                 NewFormula.reduce();
             end
             NewFormula.removeDNFduplicates();
-            GPRString = NewFormula.toString(0);
-            rulestring = NewFormula.toString(1);
+            GPRString = NewFormula.toString(1);            
             %Extend the matrix and set all involved genes to 1.
             % Also create the rules string by replacining the gene by its
-            % position.
-            compmodel.rxnGeneMat(end+1,:) = 0;
-            for gid = 1:numel(genes)
-                gene = genes{gid};
-                oldrulesstring = rulestring;
-                rulestring = strrep(rulestring,['(' gene ')'],['(x(' num2str(find(ismember(model.genes,gene))) '))']);
-                if not(strcmp(oldrulesstring,rulestring))
-                    %only if we changed anything it is necessary to create
-                    %a gene reaction link
-                    compmodel.rxnGeneMat(end,find(ismember(model.genes,gene))) = 1;
-                end
-            end
-            compmodel.rules{end+1} = rulestring;
-            compmodel.grRules{end+1} = GPRString;
-            
+            % position.            
+            compmodel.rules{end+1} = GPRString;            
+            %At the end we have to update the grRules and rxnGeneMat
+            %fields.
         else
             %there are no assigned genes with this reaction so just
             compmodel.rules{end+1} = '';
@@ -323,70 +220,24 @@ for c = 1:numel(CompartmentIDs)
     %Add Transporters for all non external Metabolites
     %skip this step if we are in the cytosol
     if not(strcmp(CompartmentIDs{c},cytosolID))
-        CompTransporters{end+1} = [];
-        for m=1:numel(IntMets)
-            %Check whether this metabolite is used in any Reaction,
-            %otherwise we can simply "not add" the transporter.
-            present = find(compmodel.S(compmetcount + m,:)~= 0);
-            %If its not yet in the compartment and not exchanged, than we
-            %can ignore it!
-            if isempty(present) && isempty(intersect(ExchangedMetabolites,compmodel.mets(compmetcount + m)))
-                %There are no reactions which could carry any flux so just
-                %skip this metabolite
-                
-                continue;
-            end
-            %fprintf('Compartment %s and Metabolite %s\n',CompartmentIDs{c},model.mets{m})
-            %disp('Adding info')
-            compmodel.rxns{end+1} = ['R_T' upper(CompartmentIDs{c}) 'C_' NonCompMetList{IntMets(m)}];
-            compmodel.rules{end+1} = '';
-            compmodel.grRules{end+1} = '';
-            %Take the absolute largest values as upper and lower bounds
-            compmodel.lb(end+1) = -abs(max([model.lb ; model.ub]));
-            compmodel.ub(end+1) = abs(max([model.lb ; model.ub]));
-            compmodel.rev(end+1) = 1;
-            compmodel.rxnNames{end+1} = [NonCompMetList{IntMets(m)} ' Transport'];
-            compmodel.c(end+1) = 0;
-            if isfield(model,'subSystems')
-                compmodel.subSystems{end+1} = 'Transport internal for FastCompart';
-            end
-            if isfield(model,'confidenceScores')
-                compmodel.confidenceScores{end+1} = '';
-            end
-            
-            if isfield(model,'rxnNotes')
-                compmodel.rxnNotes{end+1} = 'Automatically added  Transporter';
-            end
-            if isfield(model,'rxnECNumbers')
-                compmodel.rxnECNumbers{end+1} = '';
-            end                        
-            if isfield(model,'rxnReferences')
-                compmodel.rxnReferences{end+1} = '';
-            end
-
-            if (isfield(model, 'rxnConfidenceScores'))
-                compmodel.rxnConfidenceScores{end+1} = '';
-            end            
-            if (isfield(model, 'rxnKeggID'))
-                compmodel.rxnKeggID{end+1} = '';
-            end
-            if (isfield(model, 'rxnsboTerm'))
-                compmodel.rxnsboTerm{end+1} = '';
-            end
-
-            %and now comes the hard part, updating the Stoichiometric matrix
-            %disp('Modifingy matrices')
-            compmodel.rxnGeneMat(end+1,:) = 0;
-            compmodel.S(:,end+1) = 0;
-            compmodel.S(cytosolmetoffset + m,end) = 1; % consumes one cytosolic compound
-            compmodel.S([compmetcount + m],end) = -1;
-            % produces one compound in the target compartment this metabolite
-            % is at position
-            % #totalmets + (#added comparts -1) * #Internal mets + currentmet
-            CompTransporters{end}(end+1) = numel(compmodel.rxns);
-            Transporters(end+1) = numel(compmodel.rxns);            
-        end
+        nRxnsStart = numel(compmodel.rxns);
         
+        CompTransporters{end+1} = [];
+        ExMetsForComp = sum(compmodel.S(compmetcount+(1:numel(IntMets)),:)~=0,2)> 0;
+        cytMetNames = compmodel.mets(cytosolmetoffset + find(ExMetsForComp));
+        compMetNames = compmodel.mets(compmetcount+ find(ExMetsForComp));
+        metIDs = [cytMetNames;compMetNames];
+        nMets = numel(cytMetNames);
+        stoich = [speye(nMets); -speye(nMets)];
+        lbs = -abs(max([model.lb ; model.ub])) * ones(nMets,1);
+        ubs = -lbs;
+        metNames = NonCompMetList(IntMets(ExMetsForComp));
+        rxnNames = strcat(metNames, {' Transport'});
+        rxnIDs = strcat('R_T', upper(CompartmentIDs{c}), 'C_', metNames);
+        compmodel = addReactionBatch(compmodel,rxnIDs,metIDs,stoich,'lb',lbs,'ub',ubs,'rxnNames',rxnNames);
+        nRxnsEnd = numel(compmodel.rxns);
+        CompTransporters{end} = (nRxnsStart+1):nRxnsEnd;
+        Transporters = [Transporters, (nRxnsStart+1):nRxnsEnd];                    
     end
   
 end
@@ -406,32 +257,12 @@ end
 for i = 1:numel(nonunique)
     %get all positions of these metabolite
     
-    nonuniquemets = find(ismember(compmodel.mets,uni(nonunique(i))));
+    nonuniquemets = find(ismember(compmodel.mets,uni(nonunique(i))));    
     for metpos = 2:numel(nonuniquemets)       
         compmodel.S(nonuniquemets(1),:) = compmodel.S(nonuniquemets(1),:)+compmodel.S(nonuniquemets(metpos),:);
     end
-    %Now we adjusted the S matrix, lets remove the surplus stuff.
-    compmodel.mets(nonuniquemets(2:end)) = [];
-    compmodel.metNames(nonuniquemets(2:end)) = [];
-    compmodel.b(nonuniquemets(2:end)) = [];
-    compmodel.metFormulas(nonuniquemets(2:end)) = [];        
-    compmodel.S(nonuniquemets(2:end),:) = [];
-    if (isfield(model,'metChEBIID'))
-        compmodel.metChEBIID(nonuniquemets(2:end)) =  [];
-    end
-    if isfield(model,'metKEGGID')
-        compmodel.metKEGGID(nonuniquemets(2:end)) =  [];
-    end
-    if isfield(model,'metPubChemID')
-        compmodel.metPubChemID(nonuniquemets(2:end)) =  [];
-    end
-    if isfield(model,'metInChIString')
-        compmodel.metInChIString(nonuniquemets(2:end)) =  [];
-    end
-    if isfield(model,'metCharge')
-        compmodel.metCharge(nonuniquemets(2:end)) =  [];
-    end
-    
+    %We adjusted the S matrix, lets remove the surplus stuff.
+    compmodel = removeMetabolites(compmodel,nonuniquemets(2:end));       
 end
 %     disp('After removing non unique metabolites the size of S is')
 %     size(compmodel.S)
@@ -443,43 +274,11 @@ end
 for reac = 1:size(ExchangeReactions,1)
     cmet = [ExchangeReactions{reac,1} '[' ExchangeReactions{reac,2} ']'];
     name = [ 'Ex_' cmet ];
-    if isempty(find(ismember(compmodel.rxns,name)))
-        %Either add it
-        compmodel = addReaction(compmodel,['Ex_' cmet],{cmet},...
-            -ExchangeReactions{reac,3},0,0,max(max(compmodel.ub),1000),0);
-%        compmodel = addReaction(compmodel,{cmet},...
-%            -min(0,ExchangeReactions{reac,3})*min(-1000,min(compmodel.lb)),...
-%            max(0,ExchangeReactions{reac,3})*max(max(compmodel.ub),1000));
-        %add it to the core.
-        CoreReactions(end+1) = numel(compmodel.rxns);
-    else
-        %Or adjust the bounds.
-        pos = find(ismember(compmodel.rxns,name));
-        %pos = find(ismember(ComparisonModel.rxns,name));
-        direc = full(compmodel.S(ismember(compmodel.mets,cmet),pos));
-        CoreReactions(end+1) = pos;
-        if sign(ExchangeReactions{reac,3}) ==  sign(direc)
-            %we have already added the reaction, but with the opposite
-            %directionality
-            if compmodel.lb(pos) == 0
-                compmodel.rev(pos) = 1;
-                compmodel.lb(pos) = min(min(compmodel.lb),-1000);
-            end
-        end
-%         if ExchangeReactions{reac,3} > 0
-%             if compmodel.ub(pos) == 0
-%                 compmodel.rev(pos) = 1;
-%                 compmodel.ub(pos) = max(max(compmodel.ub),1000);
-%             end
-%         else
-%             if compmodel.lb(pos) == 0
-%                 compmodel.rev(pos) = 1;
-%                 compmodel.lb(pos) = min(min(compmodel.lb),-1000);
-%             end
-%         end
-    end
-
+    compmodel = addReaction(compmodel,['Ex_' cmet],'metaboliteList',{cmet},...
+        'stoichCoeffList',ExchangeReactions{reac,3},'lowerBound',ExchangeReactions{reac,4},'upperBound',ExchangeReactions{reac,5});
+    CoreReactions(end+1) = numel(compmodel.rxns);
 end
+
 CoreReactions = unique(CoreReactions);
 nonlocreacs = compmodel.rxns(nonLocReacSets);
 
