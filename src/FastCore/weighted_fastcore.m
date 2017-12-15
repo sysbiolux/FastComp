@@ -15,7 +15,7 @@ end
 model_org = model;
 
 N = 1:numel(model.rxns);
-I = find(model.rev==0);
+I = find(model.lb < 0);
 
 A = [];
 flipped = false;

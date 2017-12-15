@@ -1,53 +1,77 @@
-function [FCComps,FCtime,FullComps,Fulltime,MOComps,MOTime] = determineCompartments_Compare( model, epsilon, Demandreactions,...
-                                                       cytosolID, CompartmentIDs, CompartmentNames,...
-                                                       ReactionCompartmentalisationData, GeneCompData,...
-                                                       SingleCompModel, ExclusiveGenePos,...
+function [FCComps,FCtime,FullComps,Fulltime,MOComps,MOTime] = determineCompartments_Compare( model, epsilon,...
+                                                       cytosolID, CompartmentIDs,...
+                                                       ReactionLocalisation, GeneLocalisation,...
+                                                       SingleCompModel,...
                                                        ExternalID,Exchangers,useMO)
-%determineCompartments This function Runs multiple network based
-%compartment prediction algorithms on a input set.
-% Parameters:
-% model                         - the original uncompartmentalised model (or split between cytosol and external) 
-% epsilon                       - Epsilon for FastComp, should be 1
-% Demandreactions               - no function, will be removed in a final version
-% cytosolID                     - the string for the cytosol id (just the letter no enclosing brackets)
-% CompartmentIDs                - a cell array of letters for the compartments that shall be predicted.
-% CompartmentNames              - Names for the Compartments, (optional)
-% ReactionCompartmentalisationData - A Cell Array of Cell Arrays ontaining one or more 
-%                                    Strings contained in CompartmentIDs (e.g. {{'c','m'};{'c'};{'p','x'}})
+% This function performs a run of fastComp, and the Mintz-ORON MILP
+% algorithm. It provides the predicted localisations along with the run
+% time for each algorithm.
+%
+% USAGE:
+%    [FCComps,FCtime,FullComps,Fulltime,MOComps,MOTime] = determineCompartments_Compare( model, epsilon,...
+%                                                       cytosolID, CompartmentIDs,...
+%                                                       ReactionCompartmentalisationData, GeneLocalisation,...
+%                                                       SingleCompModel,...
+%                                                       ExternalID,Exchangers,useMO)
+%
+% INPUTS:
+%    model:                 the original uncompartmentalised model (or split between cytosol and external). 
+%                           The model must (with any added Exchanger) must be able to carry positive flux in all reactions. 
+%    cytosolID:             the string for the cytosol id (just the letter no enclosing brackets) 
+%    CompartmentIDs:        a cell array of letters for the compartments that shall be predicted. 
+%    ReactionLocalisation:  A Cell Array of Cell Arrays containing one or more 
+%                           Strings indicating compartments one entry for all reactions in the model. (e.g. {{'c','m'};{'c'};{'p','x'}})
+%                           Either ReactionCompartmentalisationData or GeneCompartmentalisationData 
+%                           need to be provided.
+%    GeneLocalisation:      A Cell array of cell arrays with localisations for each gene. 
+%                           The following assumption is made wrt activity of a reaction:
+%                           all unlocalised genes are assumed to be present in all compartments.
+%                           all localised genes are assumed to only be present in the indicated compartment.
+%                           only reactions for which the gpr rule evaluates to true under these conditions are assumed to be in the respective compartment. 
+%    SingleCompModel:       Indicator whether this is a single compartment model (only cytosol) or if it has external reactions
+%    ExternalID:            ID of the external Compartment 
+%    Exchangers:            List of Exchangers for the model including Demand and uptake reactions.  
+%                           This is a n x 5 cell array with the first element being the
+%                           metabolite(without compartment) the second element is the compartment ID
+%                           The third element is the stoichiometric coefficient 
+%                           The fourth and fifth elementes are the lower and upper bound respectively.
+%    useMO:                 Whether to run the Mintz-Oron algorithm or not.
+%    
+% OUTPUTS:
+%    FCComps:               The Predicted compartments for the consistency
+%                           based prediction
+%    FCtime:                The runtime for the consistency based prediction
+%    FullComps:             The Predicted compartments for fastComp
+%    Fulltime:              The runtime for fastcomp
+%    MOComps:               The Predicted compartments for the Mintz Oron MILP
+%    MOTime:                The runtime of the MIntz-Oron MILP
 
-% SingleCompModel               - Indicator whether this is a single compartment model (only cytosol) or if it has external reactions
-% ExclusiveGenePos              - Only has an effect 
-% ExternalID                    - ID of the external Compartment
-% Exchangers                    - List of Exchangers for the model.  This is a Cell Array of 
-%                                 Cell Arrays with 3 entries, indicating metabolite, compartment and directionality of the exchanger.
-%                                 e.g. {'atp','c',-1; 'glc','e',1}, 
-% 
-                                                   
+
 starttime = clock;
 fcpreptime = 0;
 disp('Generating Extended Model');
 fastCompModel = model;
 fastCompExchangers = Exchangers;
 if ~isempty(Exchangers)
-    [fastCompModel,fastCompExchangers,ComparisonModelFC] = CreateComparisonModelAndUpdateExchangersOrder(model,Exchangers,cytosolID);
-else
-    fastCompModel = model;
+    [ComparisonModelFC] = addFastCompExchangersToCytosol(model,Exchangers,cytosolID);
+else    
     ComparisonModelFC = fastCompModel;    
 end
-fcpreptime = fcpreptime + etime(clock,starttime);
+
+fcpreptime = fcpreptime + etime(clock,starttime)
 
 MOStart = clock;
-[CompartModel,core,transporters,nonLocReacSets,nonLocReacNames] = ...
-    GenerateExtendedModel(model, cytosolID, CompartmentIDs, CompartmentNames,...
-    ReactionCompartmentalisationData, GeneCompData, SingleCompModel, ExclusiveGenePos,...
+[CompartModel,core,transporters,nonLocReacSets] = ...
+    GenerateExtendedModel(model, cytosolID, CompartmentIDs,...
+    ReactionLocalisation, GeneLocalisation, SingleCompModel, ...
     ExternalID, Exchangers);
 MOPrepTime = etime(clock,MOStart);
 ctime = clock;
-[CompartModelFC,coreFC,transportersFC,nonLocReacSetsumodFC,nonLocReacNamesumodFC] = ...
-    GenerateExtendedModel(fastCompModel, cytosolID, CompartmentIDs, CompartmentNames,...
-    ReactionCompartmentalisationData, GeneCompData, SingleCompModel, ExclusiveGenePos,...
+[CompartModelFC,coreFC,transportersFC,nonLocReacSetsumodFC] = ...
+    GenerateExtendedModel(fastCompModel, cytosolID, CompartmentIDs,...
+    ReactionLocalisation, GeneLocalisation, SingleCompModel,...
     ExternalID, fastCompExchangers);
-fcmodelgentime = etime(clock,ctime);
+fcmodelgentime = etime(clock,ctime)
 
 %Set Timer
 ctime = clock;
@@ -55,11 +79,15 @@ ctime = clock;
 FCmodtime = etime(clock,ctime);
 
 mappingFC = getOrigReacs(nonLocReacSetsumodFC,CompartModelFC,ComparisonModelFC);
-FCumodtime = etime(clock,ctime) - FCmodtime;
+FCumodtime = etime(clock,ctime) - FCmodtime
 ctime = clock;
 disp('Doing FastComp')
-[FCComps,FullComps,FCtime] = FastCompartPrediction( CompartModelFC , transportersFC, nonLocReacSetsumodFC, coreFC, [cytosolID,CompartmentIDs], epsilon, fastCompModel, mappingFC,ReactionCompartmentalisationData, ComparisonModelFC ,'umod');
-Fulltime = etime(clock,ctime) + FCumodtime + fcpreptime + fcmodelgentime; 
+[FullComps,FCComps,SingleCompTime] = FastCompartPrediction( CompartModelFC , transportersFC, nonLocReacSetsumodFC, coreFC, [cytosolID,CompartmentIDs], fastCompModel, mappingFC,ReactionLocalisation, ComparisonModelFC );
+FastCompTime = etime(clock,ctime)
+Fulltime =  FastCompTime + FCumodtime + fcpreptime + fcmodelgentime; 
+SingleCompTime
+
+FCtime = SingleCompTime + fcmodelgentime + fcpreptime + FCumodtime ;
 
 ctime = clock;
 %FullPlusTime =  newelapsed - elapsed;

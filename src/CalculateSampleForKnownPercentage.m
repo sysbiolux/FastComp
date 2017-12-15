@@ -1,4 +1,4 @@
-function [ResultFCPure,ResultFC,ResultMO,Predictions]= CalculateSampleForKnownPercentage(model, epsilon, cytosolID, CompartmentIDs, CompartmentNames, SingleCompModel, OrigLocalisation, NonExternals, replicates, percentage, rngseed,useMO, Exchangers )
+function [ResultFCPure,ResultFC,ResultMO,Predictions]= CalculateSampleForKnownPercentage(model, epsilon, cytosolID, CompartmentIDs, SingleCompModel, OrigLocalisation, NonExternals, replicates, percentage, rngseed,useMO, Exchangers )
 %The results are double arrays with the following entries:
 %Correct Predictions | False Predictions | No Prediction | RunTime
 %OrigLocalisation is a list of localisations for all reactions, that are
@@ -10,7 +10,7 @@ function [ResultFCPure,ResultFC,ResultMO,Predictions]= CalculateSampleForKnownPe
 %produce comparable results in different runs
 rng(rngseed)
 %if no exchangers were defined, we create an empty exchanger set.
-if nargin < 13
+if ~exist('Exchangers','var')
     Exchangers = {};
 end
 %initialize the return struct
@@ -46,10 +46,10 @@ for i=1:replicates
     ToPredict = OrigLocalisation(unknowns);
     %save('Target','ToPredict');
     %Start the prediction for this set
-    [FCComps,FCtime,FullComps,Fulltime,MOComps,MOTime] =  determineCompartments_compare( model, epsilon, {},...
-                                                       cytosolID, CompartmentIDs, CompartmentNames,...
+    [FCComps,FCtime,FullComps,Fulltime,MOComps,MOTime] =  determineCompartments_compare( model, epsilon,...
+                                                       cytosolID, CompartmentIDs,...
                                                        ReactionCompartmentalisationData, GeneComp,...
-                                                       SingleCompModel, 1,...
+                                                       SingleCompModel,...
                                                        '[e]',Exchangers,useMO);
     Predictions.(['Replicate' num2str(i)]) = {FCComps,FullComps,MOComps,OrigLocalisation(unknowns),model.rxns(NonExternals(unknowns))};
     PrepTimes(i,1) = 0;    

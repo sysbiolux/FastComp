@@ -1,6 +1,6 @@
 function [Metabolites,AvailableInComp,Direction] = determineUsedTransporters(model , weightedRxns, nonLocSets,...
                                    localisedReactions, CompIDs, epsilon,...
-                                   noncompmodel, indicator)
+                                   noncompmodel)
                                
                               
 t = numel(weightedRxns);

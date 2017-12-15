@@ -1,12 +1,10 @@
-function [ExtendedModel,core,transporters,nonLocReacSets,nonLocReacNames] = GenerateExtendedModel(model, ...
-                        cytosolID, CompartmentIDs, CompartmentNames, ReactionCompartmentalisationData, GeneCompData, ...
-                        SingleCompModel, ExclusiveGenePos, ExternalID,ExchangeReactions)
+function [ExtendedModel,core,transporters,nonLocReacSets] = GenerateExtendedModel(model, ...
+                        cytosolID, CompartmentIDs, ReactionCompartmentalisationData, GeneCompData, ...
+                        SingleCompModel, ExternalID,ExchangeReactions)
 % Model                                 the original uncompartmentalised Model, 
 % epsilon                               the epsilon used for fastcore
 % cytosolID                             The ID of the Cytosol
 % CompartmentIDs                        a cell aray of compartment identifiers excluding the cytosol and external compartments ('x','m'...)
-% CompartmentNames                      a cell array of Compartment Names (in the same order
-%                                       as ComprtmentIDs) again excluding the cytosol and external compartments ('Peroxisome','Mitochondrion'....)
 % ReactionCompartmentalisationData      a cell array of cell arrays with one  entry
 %                                       per reaction in model, assigning reactions to specific compartments.
 %                                       {{},{'c','x','p'},{'m'},......}, this includes the demand reactions which
@@ -20,17 +18,16 @@ function [ExtendedModel,core,transporters,nonLocReacSets,nonLocReacNames] = Gene
 %                                       external metabolites which are to be excluded from duplication.
 %                                       The model metabolite ids are not allowed to have [] at any position that
 %                                       is not enclosing the compartment id.
-% ExclusiveGenePos                      indicates, whether only localised genes will be assigned
-%                                       (and only a minimal number of non localised added to fulfill the GPRs) or
-%                                       whether all non localised genes will be considered appropriate to all
-%                                       compartments.
-% ReactionToAllCompartments             indicates whether reactions with evidence are
-%                                       only allowed to be present in their assigned compartment, or whether they
-%                                       are allowed to be present in multiple compartments - NOT YET IMPLEMENTED
 % ExternalID                            ID of the external compartment 
 % ExchangeReactions                     A cell array with metabolites and compartment ids and directionality. {'co2' , 'c', -1 ;'co2','e', 1} would 
 %                                       indicate that there is an importer for co2 in the cytosol and an exporter in the external compartment
 % 
+
+if isempty(regexp(ExternalID,'^\[.*\]$')) %External ID is assumed to have [];
+    ExternalID = ['[' ExternalID ']'];
+end
+
+
 %Adjust the ReacCompartmentalisation Sets
 if strcmp(class(ReactionCompartmentalisationData),class(containers.Map()))
     temp = cell(1,numel(model.rxns));
@@ -55,6 +52,7 @@ if strcmp(class(GeneCompData) ,class(containers.Map()))
     GeneCompData = temp;
 end
 GeneCompartmentalisationData = GeneCompData;
+
 
 %Find exchange reactions. There should be none if we also have a
 %ExchangeReactions array defined, if, we will simply add those to the
@@ -86,7 +84,7 @@ if ~SingleCompModel
         ExternalMets = {};        
     else
         idx =strfind(model.mets,ExternalID);
-        ExternalMets = model.mets(find(not(cellfun('isempty',idx))));
+        ExternalMets = model.mets(find(~(cellfun(@isempty,idx))));
     end
 else
     %If we have a single comp model, there are no external mets (initially)
@@ -95,7 +93,7 @@ end
 
 %% now, remove all exchange Reactions!, those reactions will be added later
 
-model = removeRxns(model,model.rxns(union(imps,exps)),0,0); 
+model = removeRxns(model,model.rxns(union(imps,exps)),'metFlag',false); 
 %Adjust the ReactionCompData!
 ReactionCompartmentalisationData(union(imps,exps)) = [];
 %But do not remove the metabolites, as those could otherwise cause
@@ -126,98 +124,20 @@ comppattern = '\[[a-zA-Z_0-9]+\]$';
 NonCompMetList = regexprep(model.mets,comppattern,'');    
 
 
-%% now prepare the list of assignments for reactions. This includes 2 steps: First the direct reaction associations and then the gene associations
-%disp('Assigning Genes');
 Complist = ReactionCompartmentalisationData;
-
-% Check each gene, whether it is assigned
-% this will contain all reactions which were assigned such that the gene
-% responsible for the assignment was essential
-%and this is the array of responsible genes
-if ~isempty(GeneCompartmentalisationData)
-    for g = 1:numel(model.genes)
-        %fprintf('Computing gene %s\n',model.genes{g});
-        %if there is no assignment ignore the gene, it will later be added to
-        %all duplicate reactions in all localisations
-        if not(isempty(GeneCompartmentalisationData{g}))
-            GeneComparts = GeneCompartmentalisationData{g};
-            %fprintf('Computing gene %s\n',model.genes{g});
-            %check what effect the deletion of this gene has
-            rxns = findRxnsFromGene(model,model.genes{g});
-            if not(isempty(rxns))
-                %for each reaction check for all valid assignments based on this
-                %gene. i.e. double check for invalid assignments due to other
-                %genes...
-                for ri = 1:numel(rxns)
-                    r = rxns(ri);
-                    if r > length(model.rxns)
-                        disp(model.genes{g})
-                        disp(ri)
-                    end
-                    relgenes = findGenesFromRxns(model,model.rxns(r));
-                    relgenes = relgenes{1};
-                    FP = FormulaParser();
-                    model.grRules{r}
-                    Formula = FP.parseFormula(model.grRules{r});
-                    %disp('Creating DNNF Form')
-                    Formula.convertToDNF();
-                    FormString = Formula.toString(0);
-                    Formula.reduce();
-                    Formula.toString(0);
-                    %reduce the Formula.
-                    %disp('Reducing Formula')
-                    while not(strcmp(FormString,Formula.toString(0)))
-                        FormString = Formula.toString(0);
-                        Formula.reduce();
-                    end
-                    % obtain all clauses relevant for the current gene
-                    NewFormula = OrNode();
-                    if strcmp(class(Formula),class(LiteralNode('a')))
-                        NewFormula.addChild(Formula);
-                    else
-                        
-                        
-                        for cid = 1:numel(Formula.children)
-                            child = Formula.children(cid);
-                            if child.contains(model.genes{g})
-                                NewFormula.addChild(child);
-                            end
-                        end
-                    end
-                    NewFormula.toString(0);
-                    %and now get all literals from this new formula and check,
-                    %whether there are localisation contradictions
-                    locs = getLocalisation(NewFormula,GeneCompartmentalisationData,GeneComparts,model);
-                    notaccept = true;
-                    while notaccept && isempty(locs)
-                        [notaccept,locs,GeneCompartmentalisationData] = CorrectGeneLoc(NewFormula,model,...
-                            GeneCompartmentalisationData,g,r);
-                    end
-                    if not(isempty(locs))
-                        % if strcmp(model.genes{g},'YPR140W')
-                        %fprintf('Assigning reaction %s to the following compartments due to gene %s',model.rxns{r},model.genes{g});
-                        %disp(locs);
-                        %end
-                        Complist{r} = [Complist{r} locs];
-                    end
-                end
-            end
-        end
-    end
-end
 
 %If we have a non single comp model, we should define, that there are external reactions 
 if ~SingleCompModel    
     for r=1:numel(ExtRxns)
         if isempty(Complist{ExtRxns(r)})
-            Complist(ExtRxns(r)) = {{ExternalID}};
+            Complist(ExtRxns(r)) = {{regexprep(ExternalID,'^\[(.*)\]$','$1')}};
         end
     end
 end
 
-[ExtendedModel,core,transporters,nonLocReacSets,nonLocReacNames] = ...
+[ExtendedModel,core,transporters,nonLocReacSets] = ...
     MakeCompartmentsOneTransport(model, Complist, IntMets, ExtMets,...
     ExtRxns, NonCompMetList, CompartmentIDs, GeneCompartmentalisationData,...
-    ExclusiveGenePos, cytosolID,ExchangeReactions);
+    cytosolID,ExchangeReactions);
 %save('Data.mat','ExtendedModel','core','transporters','nonLocReacSets','nonLocReacNames')
 end
