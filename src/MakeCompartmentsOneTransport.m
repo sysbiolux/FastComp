@@ -279,6 +279,7 @@ if numel(NonLocReacs) > 0
     end    
 end
 
+CoreReactions = columnVector(CoreReactions);
 %Reactivate warnings.
 warning(warn);
 end
