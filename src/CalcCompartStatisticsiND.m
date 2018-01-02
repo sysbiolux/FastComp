@@ -1,8 +1,5 @@
 function CalcCompartStatisticsiND(Percentage,Replicates,rngSeed,useMO,filename)
-%Calculates compartments for the given number of Replicates and the given
-%percentage of known reaction localisations for the iND yeast model.
-%It should always yield the same unknown reactions if randomiz is not set
-%to 0. The function further assumes, that CPLEX is on the MATLAB path.
+% Calculates statistics for 
 rng('shuffle')
 if nargin < 4
     useMO = 1; %By default this also runs the Mintz Oron algorithm.

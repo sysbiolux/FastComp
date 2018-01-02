@@ -230,11 +230,7 @@ locrows = 1:size(unloc,1);
 %stepsize is the frequency of using the pre-localisation step
 stepsize = numel(unloc)/10;
 step = 0;
-%save(['FCLP' indicator '.mat'])
 allscores = struct;
-R2posc = find(ismember(model.rxns,'R2(c)'));
-R2posm = find(ismember(model.rxns,'R2(m)'));
-R2posp = find(ismember(model.rxns,'R2(p)'));
 
 %fprintf('The Bounds of R2(c), R2(m) and R2(p) are %f/%f , %f/%f , %f/%f\n',lp.Model.lb(R2posc),lp.Model.ub(R2posc),lp.Model.lb(R2posm),lp.Model.ub(R2posm),lp.Model.lb(R2posp),lp.Model.ub(R2posp))
 while numel(unloc) > 0    

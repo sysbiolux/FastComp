@@ -1,8 +1,49 @@
 function[ localisedReactions ] = compartment_localisation_step( model,CompIDs, localisedReactions, noncompmodel,...
     nonLocSets,ReactionCompartmentalisationData, epsilon,...
     TransportedMetabs, TransporterPresenceInComp,TransDirections)
+% Assign localisations based on model consistency, i.e. use all reactions
+% localised to a compartment along with a set of exchange reactions for the
+% compartments to indicate additional reactions in the compartment.
+% This function relies on the original implementation of fastcore.
+%
+% USAGE:
+%    [localisedReactions] = compartment_localisation_step( model,CompIDs, localisedReactions, noncompmodel,...
+%    nonLocSets,ReacCompData, epsilon,...
+%    TransportedMetabs, TransPresenceInComp,TransDirections)
+%
+% INPUTS: 
+%    model:                 The compartmentilised model (i.e. the model with all
+%                           non localised reactions in all compartments).
+%    CompIDs:               The IDs of the compartment (a Cell Array of strings).
+%    localisedReactions:    Indices of all reactions which are localised in the compartmentalised model.
+%    noncompmodel:          The model without compartmentalisation (e.g. only
+%                           the cytosol with exchangers for 
+%    nonLocSets:            The sets of non localised reactions. A double
+%                           array of indices, with one row per non localised reaction indicating
+%                           all positions of the reaction in the different
+%                           compartments.
+%    ReacCompData:          Reaction Compartmentalisation data for the
+%                           uncompartmentalised model.
+%    epsilon:               activity epsilon.
+%    TransportedMetabs:     Indicators which MEtabolites are transported.
+%    TransPresenceInComp:   Indicator, which metabolites are transported in
+%                           which compartment.
+%    TransDirections:       Indication of the directionality of transport
+%                           to/from a compartment.
+%
+% OUTPUTS:
+%
+%    localisedReactions:    Indices of all reactions localised in the
+%                           compartmentalised model. I.e. all indices not
+%                           returned for reactions with at least on
+%                           localised reaction can be deactivated.
+%
+%
+% .. Authors:
+%       - Maria Pires Pacheco - initial implementation
+%       - Thomas Pfau - addition of Transport restrictions
+%
 
-%save pre_loc_step_input
 comp_model=model;
 mother_model=noncompmodel;
 

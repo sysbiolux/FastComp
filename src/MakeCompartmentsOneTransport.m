@@ -1,32 +1,58 @@
 function [compmodel,CoreReactions,Transporters,nonLocReacSets,nonLocReacNames] = ...
 MakeCompartmentsOneTransport(model,Complist,IntMets,ExtMets,ExtRxns,NonCompMetList,...
-CompartmentIDs,GeneCompartmentalisationData,cytosolID,ExchangeReactions)
+CompartmentIDs,GeneCompData,cytosolID,ExchangeReactions)
+% Generate an extended model with unlocalised reactions in all compartments and localised reactions 
+% in their specific compartment. 
+%
+% USAGE:
+%    [compmodel,CoreReactions,Transporters,nonLocReacSets,nonLocReacNames] = ...
+%               MakeCompartmentsOneTransport(model,Complist,IntMets,ExtMets,ExtRxns,NonCompMetList,...
+%               CompartmentIDs,GeneCompartmentalisationData,cytosolID,ExchangeReactions)
+%
+% INPUTS: 
+%    model:                 The compartmentilised model (i.e. the model with all
+%                           non localised reactions in all compartments).
+%    Complist:              Indicators of reaction localisations, cell array of cell arrays of strings indicating the compartments..
+%    IntMets:               Indices of all Metabolites which are internal
+%                           (i.e. not in a fixed external compartment)
+%    ExtMets:               Indices of all Metabolites which are external
+%                           (i.e. in a fixed external compartment)
+%    NonCompMetList:        Names of all non Compartmentalised metabolites.
+%                           includes both IntMets and ExtMets. 
+%    CompartmentIDs:        The compartment ids (cell of strings),
+%                           excluding the cytosol
+%    GeneCompData:          As Complist but for Genes (can be empty).
+%    SingleCompModel:       Boolean indicator, whether this is a single compartment
+%                           model (true -> only cytosol), or has a fixed
+%                           external compartment (false).
+%    cytosolID:             Id for the cytosol.
+%    ExchangeReactions:     List of Exchangers for the model including Demand and uptake reactions.  
+%                           This is a n x 5 cell array with the first element being the
+%                           metabolite(without compartment) the second element is the compartment ID
+%                           The third element is the stoichiometric coefficient 
+%                           The fourth and fifth elementes are the lower and upper bound respectively.
+%
+% OUTPUTS:
+%
+%    compmodel:             The Model with all transporters, and
+%                           compartments.
+%    CoreReactions:         Positions of the localised reactions in the
+%                           Extended Model.                           
+%    Transporters:          Positions of the transporters in the extended
+%                           model.
+%    nonLocReacSets:        The sets of non localised reactions. A double
+%                           array of indices, with one row per non localised reaction indicating
+%                           all positions of the reaction in the different
+%                           compartments.
+%    nonLocReacNames:       NAmes of all non localised reactions.
+%
+% .. Authors:
+%       - Thomas Pfau 
+%                               
+             
 
-%Input: 
-% model                         without any exchange Reactions 
-% Complist                      A list of compartmentalisation information; the length
-%                               has to be the same as the length of the model.rxns, field. Empty cells
-%                               indicate that there is no information and the reactions are supposed to
-%                               be available in all compartments and part of the nonLocReacSet
-% IntMets                       A double array indicating all internal metabolites 
-% ExtMets                       A double array indicating all External metabolites (for
-%                               models with cytosol and external compartment
-% ExtRxns                       A double array indicating all External reactions (for
-%                               models with cytosol and external compartment
-% NonCompMetList                A List of metabolite names without localisation
-%                               information
-% CompartmentIDs                All compartments that shall eb created, without the
-%                               cytosol
-% GeneCompartmentalisationData  Compartmentalisation Information of genes,
-%                               if any
-% exclusivegene                 Indicator, whether Genes should only be
-%                               available in their respective compartments
-% cytosolID                     ID of the Cytosol
-% ExchangeReactions             List of ExchangeReactions to add.
-
-%Deactivate Warnings for this function call, there will be plenty
+warn = warning();%Deactivate Warnings for this function call, there will be plenty
 %otherwise.
-warn = warning();
 warning('off');
 
 CoreReactions = [];
@@ -120,7 +146,7 @@ for c = 1:numel(CompartmentIDs)
     fp = FormulaParser();
     for r=1:numel(ExclusiveRxns)
         %We might need to update the GPR rules.
-        if ~all(cellfun(@isempty,GeneCompartmentalisationData)) && ~isempty(compmodel.rules{nRxnsBefore+r})
+        if ~all(cellfun(@isempty,GeneCompData)) && ~isempty(compmodel.rules{nRxnsBefore+r})
              CurrentRule = fp.parseFormula(compmodel.rules{nRxnsBefore+r});
              %We convert this to a DNF form and then we remove all clauses,
              %which have members not localised to this compartment.
@@ -129,7 +155,7 @@ for c = 1:numel(CompartmentIDs)
              dnfNode = CurrentRule.convertToDNF(); %the DNF node can either be a single AND nod, a literal node, or an OR node. 
              if isa(dnfNode, 'AndNode') || isa(dnfNode,'LiteralNode')
                 genes = cellfun(@str2num, dnfNode.getLiterals());
-                correctLoc = any(ismember( CompartmentIDs{c}, [GeneCompartmentalisationData{genes}])) || all(cellfun(@isempty, GeneCompartmentalisationData(genes)));
+                correctLoc = any(ismember( CompartmentIDs{c}, [GeneCompData{genes}])) || all(cellfun(@isempty, GeneCompData(genes)));
                 if ~correctLoc % Otherwise everything is well.
                     compmodel.rules{nRxnsBefore+r} = '';
                     if isfield(compmodel,'grRules')
@@ -148,7 +174,7 @@ for c = 1:numel(CompartmentIDs)
                  for cchild = 1:numel(dnfNode.children)
                      childNode = dnfNode.children(cchild);
                      genes = cellfun(@str2num, childNode.getLiterals());
-                     correctLoc = any(ismember( CompartmentIDs{c}, [GeneCompartmentalisationData{genes}])) || all(cellfun(@isempty, GeneCompartmentalisationData(genes)));
+                     correctLoc = any(ismember( CompartmentIDs{c}, [GeneCompData{genes}])) || all(cellfun(@isempty, GeneCompData(genes)));
                      if correctLoc % extend the rule
                          rule = strcat(rule,' | ',childNode.toString());
                          NewNode.addChild(childNode);

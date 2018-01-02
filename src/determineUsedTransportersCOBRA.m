@@ -1,7 +1,39 @@
 function [Metabolites,AvailableInComp,Direction] = determineUsedTransportersCOBRA(model , weightedRxns, nonLocSets,...
                                    localisedReactions, CompIDs, epsilon,...
                                    noncompmodel)
-                               
+% Determine the transporters used in each compartment when activating all
+% localised reactions.
+%
+% USAGE:
+%    [Metabolites,AvailableInComp,Direction] = determineUsedTransporters(model , weightedRxns, nonLocSets,...
+%                                   localisedReactions, CompIDs, epsilon,...
+%                                   noncompmodel)
+%
+% INPUTS: 
+%    model:                 The compartmentilised model (i.e. the model with all
+%                           non localised reactions in all compartments).
+%    weightedRxns:          The indices of all transporters which should receive a penalty.
+%    nonLocSets:            The sets of non localised reactions. A double
+%                           array of indices, with one row per non localised reaction indicating
+%                           all positions of the reaction in the different
+%                           compartments.
+%    localisedReactions:    Indices of all reactions which are localised in the compartmentalised model.
+%    CompIDs:               The compartment ids (cell of strings)
+%    epsilon:               activity epsilon.
+%    noncompmodel:          A non com,partmentalised model.
+%
+% OUTPUTS:
+%
+%    Metabolites:           A list of transported metabolites.
+%    AvailableInComp:       A indicator matrix which metabolites are
+%                           transported into/from which compartment.
+%    Direction:             The direction of the transport, per
+%                           compartment.
+%
+% .. Authors:
+%       - Thomas Pfau 
+%                               
+                                                   
                               
 t = numel(weightedRxns);
  
@@ -81,22 +113,7 @@ coltype = '';
 coltype(1,1:n) = 'C';
 coltype(1,(end+1):(end+q+t)) = 'C';
 
-%Set up the cplex model.
-% lp.Model.A = A;
-% %turn of the Display
-% lp.Param.output.clonelog.Cur = -1;
-% lp.Param.simplex.display.Cur = 0;
-% lp.Param.barrier.display.Cur = 0;
-% lp.Param.mip.display.Cur = 0;
-% lp.Model.lb = lbs;
-% lp.Model.ub = ubs;
-% lp.Model.rhs = rhs;
-% lp.Model.lhs = lhs;
-% lp.Model.colname = colnames;
-% lp.Model.rowname = rownames;
-% lp.Model.sense = 'maximize';
-% lp.Model.obj = obj;
-%lp.Model.ctype = coltype;
+%Set up the  model.
 csense = repmat('E',size(A,1),1);
 csense(rhs == inf) = 'G';
 csense(lhs == -inf) = 'L';
