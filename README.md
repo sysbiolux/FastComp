@@ -8,6 +8,9 @@ This repository contains the FastComp algorithm for subcellular localisation pre
 Two versions of fastComp exist:
 A Version directly accessing cplex  and using the original fastcore algoirthm from [2] (used in the paper) and a version using the solve commands provided by the COBRA Toolbox[3].
 If you use the former, make sure, that you have cplex installed and set up on the matlab path.
+If you use the latter, make sure to use a compatible COBRA Toolbox version (a few functions might not yet be added to the toolbox depending on your time of usage. If you use this version:
+https://github.com/tpfau/cobratoolbox/tree/batchAdd2) all functions should be working.
+
 
 ## Repository structure
 * src contains the source files with CalculateCompartments the script that has to be run to assign reactions and create a model wih localisations.
