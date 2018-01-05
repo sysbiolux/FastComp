@@ -1,4 +1,4 @@
-function [EMR, L_Score, R_Score,origin,pred] = Evaluate(origdata,predictiondata,Comps,excludec,randomsample)
+function [EMR, L_Score, R_Score,origin,pred] = Evaluate(origdata,predictiondata,Comps,excludec,randomsample,onlypredicted)
 %Get the evaluation based on Retrieval Score Labelling Score and Exact Match Ratio
 %Godbole and Sunita - Discriminative Methods for Multi-Labeled Classification
 %
@@ -10,6 +10,16 @@ end
 
 if nargin < 5
     randomsample = 0;
+end
+
+if nargin < 6
+    onlypredicted = false;
+end
+
+if onlypredicted
+    nonpred = cellfun(@isempty, predictiondata);
+    predictiondata = predictiondata(~nonpred);
+    origdata = origdata(~nonpred);
 end
 
 [origin, pred] =generateROCData(origdata,predictiondata,excludec,randomsample,Comps);

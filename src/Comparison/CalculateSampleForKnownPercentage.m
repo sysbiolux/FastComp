@@ -1,13 +1,5 @@
 function [ResultFCPure,ResultFC,ResultMO,Predictions]= CalculateSampleForKnownPercentage(model, epsilon, cytosolID, CompartmentIDs, SingleCompModel, OrigLocalisation, NonExternals, replicates, percentage, rngseed,useMO, Exchangers )
-%The results are double arrays with the following entries:
-%Correct Predictions | False Predictions | No Prediction | RunTime
-%OrigLocalisation is a list of localisations for all reactions, that are
-%not external and not transporters from external into the cytosol
-%NonExternals is the list corresponding to the position of those reactions
-%in the model.
-
-%initialize the random number generator with the given seed (so that we can
-%produce comparable results in different runs
+% Only to be called by the Driver Scripts for comparison calculation.
 rng(rngseed)
 %if no exchangers were defined, we create an empty exchanger set.
 if ~exist('Exchangers','var')

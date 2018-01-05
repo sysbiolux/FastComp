@@ -95,7 +95,7 @@ disp('Doing Mintz-Oron Algorithm')
 if useMO
     MOComps = OronMILP(CompartModel,transporters,nonLocReacSets,core,[cytosolID,CompartmentIDs],epsilon, model );
 else
-    MOComps = FullComps;
+    MOComps = FCComps;
 end
 MOTime = etime(clock,ctime) + MOPrepTime;
 end

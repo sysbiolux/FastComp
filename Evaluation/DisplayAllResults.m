@@ -1,4 +1,4 @@
-function f = DisplayAllResults(Percentages,SampleCount,FileName,Comps,model,Algos,excludeC)
+function f = DisplayAllResults(Percentages,SampleCount,FileName,Comps,model,Algos,excludeC,onlypred)
 %INPUT: Percentages: 	(an array of percentages generated) e.g. [40 60 80]
 %	SampleCount: 	Identifiers for final samples e.g. 20
 %	FileName:	The base fielname to look up. If 'Results' is provided, the evaluator will look up all files that match to 'ResultsX-Y.mat' where X is an element of Percentages and Y is an element of 1:samplecount
@@ -11,24 +11,26 @@ function f = DisplayAllResults(Percentages,SampleCount,FileName,Comps,model,Algo
 if nargin < 7
     excludeC = 0;
 end
-algonames = {'Compartment','FastComp','Mintz-Oron','RandomResult'};
+
+if nargin < 8
+    onlypred = 0;
+end
+algonames = {'Consistency','FastComp','MILP','RandomResult'};
 
 usedAlgos = ismember(algonames,Algos);
 f = figure;
 
-Colors = [ 0 1 0; 
-           0 1 1;
-           0 0 1;
-           0.9 0.9 0;
-           1 0 0];
+Colors = jet(4);
+       
+       
 Colors =Colors(usedAlgos,:);
-algocount = sum(usedAlgos)
+algocount = sum(usedAlgos);
 Times = cell(0);
 maxtime = -Inf;
 for perc=1:numel(Percentages)
     
     Percentage = Percentages(perc);
-    [FCResult, FCPureResult,MOResult,RandomResult] = DisplayResults(Percentage,SampleCount,FileName,Comps,model,excludeC);    
+    [FCResult, FCPureResult,MOResult,RandomResult] = DisplayResults(Percentage,SampleCount,FileName,Comps,model,excludeC,onlypred);    
     
     bars = [FCResult(1), FCPureResult(1), MOResult(1), RandomResult(1)];
     errors = [FCResult(2), FCPureResult(2), MOResult(2), RandomResult(2)];
@@ -89,12 +91,17 @@ for t=1:numel(Times)
         %ignore it.
     end
 end
-legend(algonames(usedAlgos));
+leg = legend(algonames(usedAlgos));
+f.PaperSize = [8 5.7];
+f.PaperPosition = [-0.6, -0.5, 9.2 ,6.5];
+leg.Position = [0.76, 0.425,0.16 0.15];
+
 end
     
 function pbars = plotBars(cfig,subplotx,subploty,subplotid,errors,bars)
 set(0,'CurrentFigure', cfig);
-subplot(subplotx,subploty,subplotid);
+currentpos = floor((subplotid-1)/subploty) * (subploty+1) + mod(subplotid-1,subploty) + 1;
+subplot(subplotx,subploty+1,currentpos);
 if size(errors,1) == 1
     errors(2,:,:) = 0;
     bars(2,:) = 0;    
