@@ -21,5 +21,5 @@ All scripts in src are documented in the Standard COBRA Toolbox format.
 
 ### Relevant Literature
 [1] Mintz-Oron, S.; Aharoni, A.; Ruppin, E. & Shlomi, T. **Network-based prediction of metabolic enzymes' subcellular localization Bioinformatics**, 2009, 25, i247-i252  
-[2] Vlassis, N.; Pacheco, M. P. & Sauter, T. **Fast reconstruction of compact context-specific metabolic network models.** PLoS Comput Biol, 2014, 10, e1003424
-[3] Laurent Heirendt & Sylvain Arreckx, Thomas Pfau, Sebastian N. Mendoza, Anne Richelle, Almut Heinken, Hulda S. Haraldsdottir, et al. **Creation and analysis of biochemical constraint-based models: the COBRA Toolbox v3.0** (submitted), 2017, `arXiv:1710.04038 <https://arxiv.org/abs/1710.04038>`__.
+[2] Vlassis, N.; Pacheco, M. P. & Sauter, T. **Fast reconstruction of compact context-specific metabolic network models.** PLoS Comput Biol, 2014, 10, e1003424  
+[3] Laurent Heirendt & Sylvain Arreckx, Thomas Pfau, Sebastian N. Mendoza, Anne Richelle, Almut Heinken, Hulda S. Haraldsdottir, et al. **Creation and analysis of biochemical constraint-based models: the COBRA Toolbox v3.0** (submitted), 2017, `arXiv:1710.04038 <https://arxiv.org/abs/1710.04038>`
