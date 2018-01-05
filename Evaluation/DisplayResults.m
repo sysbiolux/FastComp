@@ -1,4 +1,4 @@
-function [FCResult, FCPureResult,MOResult,RandomResult] = DisplayResults(Percentages,SampleCount,FileName,Comps,model,excludeC)
+function [FCResult, FCPureResult,MOResult,RandomResult] = DisplayResults(Percentages,SampleCount,FileName,Comps,model,excludeC,onlypred)
 
 if nargin < 6
     excludeC = 0;
@@ -16,10 +16,10 @@ for prec=1:numel(Percentages)
     FCPureTimes = [];
     
     for r = 1:SampleCount
-        
+            try
             load([FileName num2str(Percentages(prec)) '-' num2str(r) '.mat'])
             
-            fprintf(['loaded ' FileName num2str(Percentages(prec)) '-' num2str(r) '.mat\n'])
+            %fprintf(['loaded ' FileName num2str(Percentages(prec)) '-' num2str(r) '.mat\n'])
             for i = 1:length(fieldnames(Predictions))
                 
                 nonexchange = ~ismember(Predictions.(['Replicate' num2str(i)]){5},exchangereactions);
@@ -28,25 +28,24 @@ for prec=1:numel(Percentages)
                 preddata1 = Predictions.(['Replicate' num2str(i)]){1};
                 preddata2 = Predictions.(['Replicate' num2str(i)]){2};
                 preddata4 = Predictions.(['Replicate' num2str(i)]){3};
-                [fcEMR,fcL_Score,fcR_Score] = Evaluate(origdata,preddata1,Comps,excludeC)
-                [fcfullEMR,fcfullL_Score,fcfullR_Score] = Evaluate(origdata,preddata2,Comps,excludeC)
-                [MOEMR,MOL_Score,MOR_Score] = Evaluate(origdata,preddata4,Comps,excludeC)
-                [randEMR,randL_Score,randR_Score] = Evaluate(origdata,'',Comps,0,1)    
+                [fcEMR,fcL_Score,fcR_Score] = Evaluate(origdata,preddata1,Comps,excludeC,0,onlypred);
+                [fcfullEMR,fcfullL_Score,fcfullR_Score] = Evaluate(origdata,preddata2,Comps,excludeC,0,onlypred);
+                [MOEMR,MOL_Score,MOR_Score] = Evaluate(origdata,preddata4,Comps,excludeC,0,onlypred);
+                [randEMR,randL_Score,randR_Score] = Evaluate(origdata,'',Comps,0,1);    
                 FCResults(end+1,:) = [fcEMR,fcL_Score,fcR_Score];
                 FCPureResults(end+1,:) = [fcfullEMR,fcfullL_Score,fcfullR_Score];
                 MOResults(end+1,:) = [MOEMR,MOL_Score,MOR_Score];
                 RandomResults(end+1,:) = [randEMR,randL_Score,randR_Score];
                 samples = samples + 1;                
             end
-            fprintf('Success\n')
+            %fprintf('Success\n')
             FCTimes = [FCTimes ; CompartResults(:,5)];
             FCPureTimes = [FCPureTimes ; ResultFC(:,5)];
             MOTimes = [MOTimes ; ResultMO(:,5)];
-%          catch MException
-%               disp(MException);
-%               continue
-%           end
-       
+            catch MException
+                %disp(MException);
+                continue
+            end       
     end    
     fprintf('For %i percent the following statistics can be computed for a total number of %i:\n',Percentages(prec),samples)
     fprintf('Algorithm\tEMR   \tL_Score\tR_Score       \tTime     \n with Cytosolic Reactions\n')

@@ -18,7 +18,7 @@ if nargin > 2
 end
 
 
-I = intersect(N,find(model.rev==0));
+I = intersect(N,find(model.lb>=0));
 
 A = [];
 

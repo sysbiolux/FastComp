@@ -1,13 +1,14 @@
-function[ localisedReactions ] = compartment_localisation_step( model,CompIDs, localisedReactions, noncompmodel,...
-    nonLocSets,ReactionCompartmentalisationData, epsilon,...
-    TransportedMetabs, TransporterPresenceInComp,TransDirections)
+function [localisedReactions] = compartment_localisation_step_COBRA( model,CompIDs, localisedReactions, noncompmodel,...
+    nonLocSets,ReacCompData, epsilon,...
+    TransportedMetabs, TransPresenceInComp,TransDirections)
 % Assign localisations based on model consistency, i.e. use all reactions
 % localised to a compartment along with a set of exchange reactions for the
 % compartments to indicate additional reactions in the compartment.
-% This function relies on the original implementation of fastcore.
+% This function exclusively uses COBRA Toolbox functions, while the
+% original relies on the original implementation of fastcore.
 %
 % USAGE:
-%    [localisedReactions] = compartment_localisation_step( model,CompIDs, localisedReactions, noncompmodel,...
+%    [localisedReactions] = compartment_localisation_step_COBRA( model,CompIDs, localisedReactions, noncompmodel,...
 %    nonLocSets,ReacCompData, epsilon,...
 %    TransportedMetabs, TransPresenceInComp,TransDirections)
 %
@@ -51,13 +52,12 @@ mother_model=noncompmodel;
 %Assignment. These reactions are the external reactions (and should be
 %assigned to the cytosol.
 
-%disp('Setting up Exchangers for pre localisation')
 %Set up the transporters
 %To do so, we have to determine which metabolites are actually exchanged.
-ActiveTransport = sum(TransporterPresenceInComp,2) > 0;
+ActiveTransport = sum(TransPresenceInComp,2) > 0;
 ActiveTransMetabs = TransportedMetabs(ActiveTransport);
 ActiveDirections = TransDirections(ActiveTransport,:);
-ActivePresence = TransporterPresenceInComp(ActiveTransport,:);
+ActivePresence = TransPresenceInComp(ActiveTransport,:);
 
 %Now, we don't care about duplication. for this test.
 [TransMetabPresence,TransMetabPositions] = ismember(mother_model.mets,strcat(ActiveTransMetabs,['[' CompIDs{1} ']']));
@@ -77,10 +77,10 @@ for i = 1:numel(ActiveTransMetabs)
 end
 
 %Obtain a list of localised reactions
-Localised = find(~cellfun(@isempty,ReactionCompartmentalisationData));
+Localised = find(~cellfun(@isempty,ReacCompData));
 %Initialise the localisation information
 for j=1:numel(Localised)
-    presence_tag(j,:)=ismember(CompIDs, ReactionCompartmentalisationData{Localised(j)});
+    presence_tag(j,:)=ismember(CompIDs, ReacCompData{Localised(j)});
 end
 %and attach the Transporter Localisation
 presence_tag = [presence_tag;ActivePresence];
@@ -94,7 +94,6 @@ Exchangers = ~cellfun(@isempty, regexp(mother_model.rxns,'^Ex_.*\[[^\]]+\][0-9]+
 ExComps = regexprep(mother_model.rxns,'^Ex_.*\[([^\]]+)\][0-9]+$','$1');
 
 for i=1:numel(CompIDs)
-    %disp(['Testing compartment ' CompIDs{i}])
     model=mother_model;
     %Define the reactions that are to be removed from the model. (for wrong
     %localisation
@@ -116,12 +115,12 @@ for i=1:numel(CompIDs)
     %threshold by distributing it over many reactions and make it
     %infeasible in the next step.
     reacset = 1:numel(model.rxns);
-    A=fastcc(model, epsilon);
+    A=fastcc(model, epsilon,0);
     while numel(reacset) > numel(A)
         %Reduce the model to only contain reactions with this
         model=removeRxns(model,model.rxns(setdiff(1:numel(model.rxns),A)));
         reacset = 1:numel(model.rxns);
-        A = fastcc(model,epsilon);
+        A = fastcc(model,epsilon,0);
     end
     %Define the new core as all localised reactions in the original model and the
     %reactions of the current model.
@@ -130,7 +129,8 @@ for i=1:numel(CompIDs)
     C=find(ismember(model.rxns, mother_model.rxns(C)));
     
     %Determine the fastcore of the new model.
-    [A] = fastcore( C, model, epsilon );
+    newmodel = fastcore( model,C,epsilon,0 );
+    A = find(ismember(model.rxns,newmodel.rxns));
     if numel(A) > 0
         A_keep(i,1:numel(A))=model.rxns(A)';
         A_sets{i} = model.rxns(A)';

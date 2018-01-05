@@ -12,7 +12,7 @@ function A = fastcore( C, model, epsilon, nonLocReacSets, trans )
 model_org = model;
 
 N = 1:size(model.S,2);
-I = find(model.rev==0);
+I = find(model.lb>=0);
 
 A = [];
 flipped = false;

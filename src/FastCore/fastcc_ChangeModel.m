@@ -11,7 +11,7 @@ function [A,model,incI] = fastcc_ChangeModel( model, epsilon )
 % Modifications by Thomas Pfau
 
 N = (1:numel(model.rxns));
-I = find(model.lb < 0);
+I = find(model.lb >= 0);
 
 A = [];
 Vs = {};

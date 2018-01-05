@@ -72,13 +72,13 @@ ctime = clock;
 orignonLocSets = nonLocSets;
 
 % Perform one run of the FastCompLP to determine the used transporters
-[Metabolites,AvailableInComp,TransDirections] = determineUsedTransporters(model , weightedRxns, nonLocSets,...
+[Metabolites,AvailableInComp,TransDirections] = determineUsedTransportersCOBRA(model , weightedRxns, nonLocSets,...
 localisedReactions, CompIDs, epsilon,...
 noncompmodel);
 
 % Perform an initial pre_localisation step to get an initial set of
 % assigned reactions.
-[new_localised] = compartment_localisation_step( model,CompIDs, localisedReactions,...
+[new_localised] = compartment_localisation_step_COBRA( model,CompIDs, localisedReactions,...
                                          ComparisonModel, nonLocSets,ReacLocal,...
                                          epsilon, Metabolites, AvailableInComp,TransDirections);
 
@@ -191,22 +191,21 @@ coltype = '';
 coltype(1,1:n) = 'C';
 coltype(1,(end+1):(end+q+t)) = 'C';
 
+csense = repmat('E',size(A,1),1);
+csense(rhs == inf) = 'G';
+csense(lhs == -inf) = 'L';
+b = zeros(size(A,1),1);
+b(rhs == inf) = lhs(rhs == inf);
+b(lhs == -inf) = rhs(lhs == -inf);
+
 %Set up the cplex model.
-lp.Model.A = A;
-%turn of the Display
-lp.Param.output.clonelog.Cur = -1;
-lp.Param.simplex.display.Cur = 0;
-lp.Param.barrier.display.Cur = 0;
-lp.Param.mip.display.Cur = 0;
-lp.Model.lb = lbs;
-lp.Model.ub = ubs;
-lp.Model.rhs = rhs;
-lp.Model.lhs = lhs;
-lp.Model.colname = colnames;
-lp.Model.rowname = rownames;
-lp.Model.sense = 'maximize';
-lp.Model.obj = obj;
-%lp.Model.ctype = coltype;
+LPproblem.A = A;
+LPproblem.lb = lbs;
+LPproblem.ub = ubs;
+LPproblem.csense = csense;
+LPproblem.b = b;
+LPproblem.c = obj;
+LPproblem.osense = -1;
 
 %Select all reactions which have already been localised and turn off those,
 %which are not the correct ones
@@ -217,8 +216,8 @@ lp.Model.obj = obj;
 removeReacs = setdiff(setdiff(orignonLocSets(orignonLocSets~=0),localisedReactions),nonLocSets(nonLocSets~=0));
 %Set the reactions which were determined to be off to 0.
 if numel(removeReacs) > 0
-    lp.Model.lb(removeReacs) = 0;
-    lp.Model.ub(removeReacs) = 0;
+    LPproblem.lb(removeReacs) = 0;
+    LPproblem.ub(removeReacs) = 0;
     model.lb(removeReacs) = 0;
     model.ub(removeReacs) = 0;
 end
@@ -230,9 +229,13 @@ locrows = 1:size(unloc,1);
 %stepsize is the frequency of using the pre-localisation step
 stepsize = numel(unloc)/10;
 step = 0;
+%save(['FCLP' indicator '.mat'])
 allscores = struct;
+R2posc = find(ismember(model.rxns,'R2(c)'));
+R2posm = find(ismember(model.rxns,'R2(m)'));
+R2posp = find(ismember(model.rxns,'R2(p)'));
 
-%fprintf('The Bounds of R2(c), R2(m) and R2(p) are %f/%f , %f/%f , %f/%f\n',lp.Model.lb(R2posc),lp.Model.ub(R2posc),lp.Model.lb(R2posm),lp.Model.ub(R2posm),lp.Model.lb(R2posp),lp.Model.ub(R2posp))
+
 while numel(unloc) > 0    
     %get a random row 
     row = randi(numel(locrows));
@@ -240,11 +243,9 @@ while numel(unloc) > 0
     %Calculate the scores for this row and determine the compartment for
     %this row.
     
-    scores = calcScores(model,lp,nonLocSets(curr,:),epsilon);         
+    scores = calcScores(model,LPproblem,nonLocSets(curr,:),epsilon);         
     [comp,pos] = GetCompartmentsFromScore(scores, CompIDs, lp.Param.simplex.tolerances.feasibility.Cur);
-    creac = model.rxns{nonLocSets(curr,1)};
-    %fprintf('Calculated scores for reaction %s\n',creac);
-    %fprintf('The Bounds of R2(c), R2(m) and R2(p) are %f/%f , %f/%f , %f/%f\n',lp.Model.lb(R2posc),lp.Model.ub(R2posc),lp.Model.lb(R2posm),lp.Model.ub(R2posm),lp.Model.lb(R2posp),lp.Model.ub(R2posp))
+    creac = model.rxns{nonLocSets(curr,1)};    
     creac = creac(1:end-3);    
     allscores.(['R' creac]) = scores;
     %add those reactions to the set of localised reactions and remove the
@@ -255,8 +256,8 @@ while numel(unloc) > 0
     removedreacs = removedreacs(removedreacs~=0);    
     %And adjust the upper and lower bounds of the associated reactions
     %which are not in the "target" compartments.
-    lp.Model.lb(removedreacs) = 0;
-    lp.Model.ub(removedreacs) = 0;
+    LPproblem.lb(removedreacs) = 0;
+    LPproblem.ub(removedreacs) = 0;
     model.lb(removedreacs) = 0;
     model.ub(removedreacs) = 0;
     %reduce the unloc set and the locrows set
@@ -275,10 +276,10 @@ while numel(unloc) > 0
     if step > stepsize && step > 10
         step = 0;
         %calculate a new round of pre_localisation step
-        [Metabolites,AvailableInComp,TransDirections] = determineUsedTransporters(model , weightedRxns, nonLocSets,...
+        [Metabolites,AvailableInComp,TransDirections] = determineUsedTransportersCOBRA(model , weightedRxns, nonLocSets,...
         localisedReactions, CompIDs, epsilon,...
         noncompmodel);
-        [new_localised] = compartment_localisation_step( model,CompIDs,...
+        [new_localised] = compartment_localisation_step_COBRA( model,CompIDs,...
             localisedReactions, ComparisonModel, unloc,...
             ReacLocal, epsilon,Metabolites,AvailableInComp,TransDirections);
         % Get all newly localised reactions
@@ -299,8 +300,8 @@ while numel(unloc) > 0
         removeReacs = setdiff(nonLocSets,union(unloc,localisedReactions));
         removedreacs = removedreacs(removedreacs~=0);
         
-        lp.Model.lb(removedreacs) = 0;
-        lp.Model.ub(removedreacs) = 0;          
+        LPproblem.lb(removedreacs) = 0;
+        LPproblem.ub(removedreacs) = 0;          
         model.lb(removedreacs) = 0;
         model.ub(removedreacs) = 0;
     end
@@ -308,22 +309,19 @@ end
 %save('FCModpred','allscores');
 end
 
-function scores = calcScores(model, MILP,nonLocReacs,epsilon)
-%R2posc = find(ismember(model.rxns,'R2(c)'));
-%R2posm = find(ismember(model.rxns,'R2(c)'));
-%R2posp = find(ismember(model.rxns,'R2(c)'));
+function scores = calcScores(model, LPproblem,nonLocReacs,epsilon)
+
 
 %fprintf('CalcScores1: The Bounds of R2(c), R2(m) and R2(p) are %f/%f , %f/%f , %f/%f\n',MILP.Model.lb(R2posc),MILP.Model.ub(R2posc),MILP.Model.lb(R2posm),MILP.Model.ub(R2posm),MILP.Model.lb(R2posp),MILP.Model.ub(R2posp))
-MILP.DisplayFunc = [];
 scores = -inf * ones(size(nonLocReacs));
 %turn off the alternate reactions.
 oldlbs = zeros(size(nonLocReacs));
 oldubs = zeros(size(nonLocReacs));
-oldlbs(nonLocReacs~=0) = MILP.Model.lb(nonLocReacs(nonLocReacs~=0));
-oldubs(nonLocReacs~=0) = MILP.Model.ub(nonLocReacs(nonLocReacs~=0));
-MILP.Model.lb(nonLocReacs(nonLocReacs~=0)) = 0;
-MILP.Model.ub(nonLocReacs(nonLocReacs~=0)) = 0;
-MILP.Param.output.clonelog.Cur = -1;
+oldlbs(nonLocReacs~=0) = LPproblem.lb(nonLocReacs(nonLocReacs~=0));
+oldubs(nonLocReacs~=0) = LPproblem.ub(nonLocReacs(nonLocReacs~=0));
+LPproblem.lb(nonLocReacs(nonLocReacs~=0)) = 0;
+LPproblem.ub(nonLocReacs(nonLocReacs~=0)) = 0;
+
 for i=1:numel(nonLocReacs)
     if nonLocReacs(i) == 0
         %This reaction is not included so ignore it.
@@ -332,43 +330,42 @@ for i=1:numel(nonLocReacs)
     %force positive flux through the reaction, this has always to be
     %possible    
     score = -inf;
-    oldlb = MILP.Model.lb(nonLocReacs(i));           
-    MILP.Model.ub(nonLocReacs(i)) = oldubs(i);
-    MILP.Model.lb(nonLocReacs(i)) = epsilon;    
-    sol = MILP.solve();   
-    %fprintf('Upper bound of reaction %s is %f\n',model.rxns{nonLocReacs(i)},MILP.Model.ub(nonLocReacs(i)));
+    oldlb = LPproblem.lb(nonLocReacs(i));           
+    LPproblem.ub(nonLocReacs(i)) = oldubs(i);
+    LPproblem.lb(nonLocReacs(i)) = epsilon;    
+    sol = solveCobraLP(LPproblem);   
     try
-        score = sol.objval;
+        score = sol.obj;
     catch
  	if oldlbs(i) == 0
-	        fprintf('FASTCOMPART: No Solution found for Reaction %s\n',model.rxns{nonLocReacs(i)});
+	        fprintf('FASTCOMP: No Solution found for Reaction %s\n',model.rxns{nonLocReacs(i)});
 	end
         %printRxnFormula(model,model.rxns{nonLocReacs(i)});
         %save(model.rxns{nonLocReacs(i)},'MILP')
     end
-    MILP.Model.lb(nonLocReacs(i)) = oldlb;    
-    MILP.Model.ub(nonLocReacs(i)) = 0;    
+    LPproblem.lb(nonLocReacs(i)) = oldlb;    
+    LPproblem.ub(nonLocReacs(i)) = 0;    
     if model.lb(nonLocReacs(i)) < 0
-        oldub = MILP.Model.ub(nonLocReacs(i));            
-        MILP.Model.ub(nonLocReacs(i)) = -epsilon;        
-        MILP.Model.lb(nonLocReacs(i)) = oldlbs(i);        
-        sol = MILP.solve();        
+        oldub = LPproblem.ub(nonLocReacs(i));            
+        LPproblem.ub(nonLocReacs(i)) = -epsilon;        
+        LPproblem.lb(nonLocReacs(i)) = oldlbs(i);        
+        sol = solveCobraLP(LPproblem);        
         try            
             if sol.status == 1
-                score = max(score,sol.objval);
+                score = max(score,sol.obj);
             end
         catch
 		if score == -inf
-	            fprintf('FASTCOMPART: No Solution found for positive Reaction %s\n',model.rxns{nonLocReacs(i)});
+	            fprintf('FASTCOMP: No Solution found for positive Reaction %s\n',model.rxns{nonLocReacs(i)});
 		end
         end
-        MILP.Model.ub(nonLocReacs(i)) = oldub;
-        MILP.Model.lb(nonLocReacs(i)) = 0;
+        LPproblem.ub(nonLocReacs(i)) = oldub;
+        LPproblem.lb(nonLocReacs(i)) = 0;
     end   
     scores(i) = score;
 end
-MILP.Model.lb(nonLocReacs(nonLocReacs~=0)) = oldlbs(nonLocReacs~=0);
-MILP.Model.ub(nonLocReacs(nonLocReacs~=0)) = oldubs(nonLocReacs~=0);
+LPproblem.lb(nonLocReacs(nonLocReacs~=0)) = oldlbs(nonLocReacs~=0);
+LPproblem.ub(nonLocReacs(nonLocReacs~=0)) = oldubs(nonLocReacs~=0);
 
 end
 

@@ -1,4 +1,4 @@
-function [Metabolites,AvailableInComp,Direction] = determineUsedTransporters(model , weightedRxns, nonLocSets,...
+function [Metabolites,AvailableInComp,Direction] = determineUsedTransportersCOBRA(model , weightedRxns, nonLocSets,...
                                    localisedReactions, CompIDs, epsilon,...
                                    noncompmodel)
 % Determine the transporters used in each compartment when activating all
@@ -33,6 +33,7 @@ function [Metabolites,AvailableInComp,Direction] = determineUsedTransporters(mod
 % .. Authors:
 %       - Thomas Pfau 
 %                               
+                                                   
                               
 t = numel(weightedRxns);
  
@@ -58,7 +59,7 @@ if numel(nonLocSets) == 0
     return
 end
 
-lp = Cplex('LP');
+% lp = Cplex('LP');
 m = numel(model.mets);
 n = numel(model.rxns) ;
 k = numel(nonLocSets(nonLocSets~=0));
@@ -112,25 +113,25 @@ coltype = '';
 coltype(1,1:n) = 'C';
 coltype(1,(end+1):(end+q+t)) = 'C';
 
-%Set up the cplex model.
-lp.Model.A = A;
-%turn of the Display
-lp.Param.output.clonelog.Cur = -1;
-lp.Param.simplex.display.Cur = 0;
-lp.Param.barrier.display.Cur = 0;
-lp.Param.mip.display.Cur = 0;
-lp.Model.lb = lbs;
-lp.Model.ub = ubs;
-lp.Model.rhs = rhs;
-lp.Model.lhs = lhs;
-lp.Model.colname = colnames;
-lp.Model.rowname = rownames;
-lp.Model.sense = 'maximize';
-lp.Model.obj = obj;
-%lp.Model.ctype = coltype;
+%Set up the  model.
+csense = repmat('E',size(A,1),1);
+csense(rhs == inf) = 'G';
+csense(lhs == -inf) = 'L';
+b = zeros(size(A,1),1);
+b(rhs == inf) = lhs(rhs == inf);
+b(lhs == -inf) = rhs(lhs == -inf);
 
-sol = lp.solve();
-reactionVals = sol.x(1:n);
+%Set up the cplex model.
+LPproblem.A = A;
+LPproblem.lb = lbs;
+LPproblem.ub = ubs;
+LPproblem.csense = csense;
+LPproblem.b = b;
+LPproblem.c = obj;
+LPproblem.osense = -1;
+
+sol = solveCobraLP(LPproblem);
+reactionVals = sol.full(1:n);
 activetranspos = reactionVals(weightedRxns) > 1e-6;
 activetransneg = reactionVals(weightedRxns) < 1e-6;
 

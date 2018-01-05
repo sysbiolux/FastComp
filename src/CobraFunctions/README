@@ -1,2 +1,0 @@
-This folder contains functions from the COBRA Toolbox that are used in FastComp.
-Some functions are slightly altered to adapt them to their use in FastComp, while for a majority of functions only the very verbose output was removed.

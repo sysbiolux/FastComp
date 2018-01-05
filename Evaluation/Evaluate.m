@@ -1,4 +1,4 @@
-function [EMR, L_Score, R_Score,origin,pred] = Evaluate(origdata,predictiondata,Comps,excludec,randomsample)
+function [EMR, L_Score, R_Score,origin,pred] = Evaluate(origdata,predictiondata,Comps,excludec,randomsample,onlypredicted)
 %Get the evaluation based on Retrieval Score Labelling Score and Exact Match Ratio
 %Godbole and Sunita - Discriminative Methods for Multi-Labeled Classification
 %
@@ -12,25 +12,20 @@ if nargin < 5
     randomsample = 0;
 end
 
+if nargin < 6
+    onlypredicted = false;
+end
+
+if onlypredicted
+    nonpred = cellfun(@isempty, predictiondata);
+    predictiondata = predictiondata(~nonpred);
+    origdata = origdata(~nonpred);
+end
+
 [origin, pred] =generateROCData(origdata,predictiondata,excludec,randomsample,Comps);
-% TruePositives = numel(find(origin == pred & origin == 1));
-% TrueNegatives = numel(find(origin == pred & origin == 0));
-% FalsePositives = numel(find(origin ~= pred & origin == 0));
-% FalseNegatives = numel(find(origin ~= pred & origin == 1));
-% OrigLabels = numel(find(origin == 1));
-% PredictedLabels = numel(find(pred == 1));
-% [precision,recall,f1] = calcRPMicro(origin,pred);
-% precision = subsetAcc(origin,pred);
-% recall = overallAcc(origin,pred);
 EMR = ExactMatchRatio(origin,pred);
 L_Score = LabellingFScore(origin,pred);
 R_Score = retrievalScore(origin,pred);
-%precision = (TruePositives) / (TruePositives + FalseNegatives + FalsePositives);
-%(numel(find((origin == 1) & (pred==1)))) / numel(find(pred));
-%precision = TruePositives / PredictedLabels;
-%recall = (numel(find((origin == 1) & (pred==1)))) / numel(find(origin));
-%recall = TruePositives / OrigLabels;
-%f1 = (2 * precision * recall) / (precision + recall);
 end
 
 
