@@ -34,6 +34,6 @@ end
 lbs = cell2mat(Exchangers(:,4));
 ubs = cell2mat(Exchangers(:,5));
 rxnIDs = strcat('Ex_', Exchangers(:,1), '[', Exchangers(:,2), ']');
-ComparisonModel = addReactionBatch(model,rxnIDs,umets,reacCoefs,'lb',lbs,'ub',ubs);
+ComparisonModel = addMultipleReactions(model,rxnIDs,umets,reacCoefs,'lb',lbs,'ub',ubs);
 
 end

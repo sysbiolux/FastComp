@@ -122,11 +122,11 @@ for c = 1:numel(CompartmentIDs)
     else
         cmetpars = metpars;
     end    
-    compmodel = addMetaboliteBatch(compmodel,compMetNames(~pres),...
+    compmodel = addMultipleMetabolites(compmodel,compMetNames(~pres),...
                 cmetpars{:});                
     if numel(NonLocReacs) > 0
         compRxnNames = strcat(regexprep(model.rxns(NonLocReacs),'\([a-z]+\)',''),['(' CompartmentIDs{c} ')']);
-        compmodel = addReactionBatch(compmodel,compRxnNames,compMetNames,NonLocReacMatrix, rxnspars{:});
+        compmodel = addMultipleReactions(compmodel,compRxnNames,compMetNames,NonLocReacMatrix, rxnspars{:});
     end
     %Now add the localised Reactions of this compartment    
     ExclusiveRxns = find(cellfun(@(x) not(isempty(find(ismember(x,CompartmentIDs{c})))),Complist));
@@ -139,7 +139,7 @@ for c = 1:numel(CompartmentIDs)
     nRxnsBefore = numel(compmodel.rxns);
     if numel(ExclusiveRxns) > 0
         ExRxnNames = strcat(regexprep(model.rxns(ExclusiveRxns),'\([a-z]+\)',''),['(' CompartmentIDs{c} ')']);
-        compmodel = addReactionBatch(compmodel,ExRxnNames,compMetNames,ExclusiveStoich, exrxnspars{:});
+        compmodel = addMultipleReactions(compmodel,ExRxnNames,compMetNames,ExclusiveStoich, exrxnspars{:});
     end
     nRxnsAdded = numel(compmodel.rxns);
     CoreReactions = [CoreReactions, (nRxnsBefore+1):nRxnsAdded];
@@ -214,7 +214,7 @@ for c = 1:numel(CompartmentIDs)
         metNames = regexprep(compMetNames,'\[[^[]+\]$','');
         rxnNames = strcat(metNames, {' Transport'});
         rxnIDs = strcat('R_T', upper(CompartmentIDs{c}), 'C_', metNames);
-        compmodel = addReactionBatch(compmodel,rxnIDs,metIDs,stoich,'lb',lbs,'ub',ubs,'rxnNames',rxnNames);
+        compmodel = addMultipleReactions(compmodel,rxnIDs,metIDs,stoich,'lb',lbs,'ub',ubs,'rxnNames',rxnNames);
         nRxnsEnd = numel(compmodel.rxns);
         CompTransporters{end+1} = (nRxnsStart+1):nRxnsEnd;
         Transporters = [Transporters, (nRxnsStart+1):nRxnsEnd];                    
@@ -263,7 +263,7 @@ end
 lbs = cell2mat(ExchangeReactions(:,4));
 ubs = cell2mat(ExchangeReactions(:,5));
 rxnIDs = strcat('Ex_', ExchangeReactions(:,1), '[', ExchangeReactions(:,2), ']');
-compmodel = addReactionBatch(compmodel,rxnIDs,umets,reacCoefs,'lb',lbs,'ub',ubs);
+compmodel = addMultipleReactions(compmodel,rxnIDs,umets,reacCoefs,'lb',lbs,'ub',ubs);
 
 nRxnsEnd = numel(compmodel.rxns);
 CoreReactions = [CoreReactions, (nRxnsStart+1):nRxnsEnd];

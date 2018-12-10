@@ -129,7 +129,7 @@ for i=1:numel(CompIDs)
     C=find(ismember(model.rxns, mother_model.rxns(C)));
     
     %Determine the fastcore of the new model.
-    newmodel = fastcore( model,C,epsilon,0 );
+    newmodel = fastcore(model,C,epsilon,0 );
     A = find(ismember(model.rxns,newmodel.rxns));
     if numel(A) > 0
         A_keep(i,1:numel(A))=model.rxns(A)';

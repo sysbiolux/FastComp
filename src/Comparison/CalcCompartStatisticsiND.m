@@ -43,12 +43,12 @@ end
 
 addpath([pwd filesep])
 %Use the direct fastcore implementation.
-addpath([pwd filesep 'FastCore' filesep])
+%addpath([pwd filesep 'FastCore' filesep])
 mkdir([tempdir filesep  'FC_' num2str(Percentage) '_' num2str(seed)])
 cd([tempdir filesep 'FC_' num2str(Percentage) '_' num2str(seed)])
 folder = fileparts(which(mfilename));
 
-load([ folder filesep 'iND750_Model.mat'])
+load([ folder filesep 'Data' filesep 'iND750_Model.mat'])
 
 [CompartResults,ResultFC,ResultMO,Predictions]= CalculateSampleForKnownPercentage(iND750_decomp_DirAdjust,1,'c',iND750_DirecAdjust_CompIDs,0,iND750_DirecAdjust_OrigLocs,iND750_DirecAdjust_NonExt,Replicates,Percentage,seed,useMO)
 
